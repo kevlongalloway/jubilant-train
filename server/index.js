@@ -31,21 +31,9 @@ const distPath = path.join(__dirname, '..', 'dist');
 app.use(express.static(distPath));
 
 // ─── CORS (API routes only) ───────────────────────────────────
-const allowedOrigins = [
-  'http://localhost:5173', // Vite dev server
-  'http://localhost:3001',
-  process.env.CORS_ORIGIN,
-].filter(Boolean);
-
-app.use(cors({
-  origin: (origin, cb) => {
-    // Allow requests with no origin (mobile apps, Postman, curl, etc.)
-    if (!origin) return cb(null, true);
-    if (allowedOrigins.includes(origin)) return cb(null, true);
-    cb(new Error('Not allowed by CORS'));
-  },
-  credentials: true,
-}));
+// origin: true reflects the request's Origin header back, which works for
+// both localhost dev and the production Render domain without hard-coding URLs.
+app.use(cors({ origin: true, credentials: true }));
 
 // ─── API Routes ───────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
