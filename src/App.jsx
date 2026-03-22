@@ -83,50 +83,102 @@ return <>
 </>;}
 
 // ─── EXPLORE SCREEN ──────────────────────────────────────────
-function ExploreScreen({T,onBook}){
+function ExploreScreen({T,onBook,defaultSection="discover"}){
+const[section,setSection]=useState(defaultSection);
 const[following,setFl]=useState({});const[lf,setLf]=useState("all");
+const[bookQ,setBookQ]=useState("");const[genre,setGenre]=useState("All");
+const[pressTab,setPT]=useState("discover");const[form,setForm]=useState("all");
 const readers=[...US].map((u,i)=>({...u,distance:["0.8 mi","1.2 mi","2.1 mi","3.4 mi","4.7 mi","6.2 mi","8.1 mi","12 mi"][i],currentBook:CR[i%CR.length]?.book||"Beloved",bio:["Reading as an act of feeling.","Structure is story.","Every sentence is a door.","What question does this book refuse to answer?","Borders are for crossing.","Prose should leave marks.","Language is the house of being.","Two threads. One needle."][i]}));
-const filtered=lf==="all"?readers:readers.filter(u=>u.lens===lf);
-return <div style={{animation:"en .35s ease both"}}>
-<Sec T={T} title={<><BookOpen size={13} style={{verticalAlign:"middle",marginRight:4}}/>Reading Right Now</>} sub="Live"><div style={{display:"flex",gap:8,overflowX:"auto",WebkitOverflowScrolling:"touch",scrollbarWidth:"none"}}>{CR.slice(0,3).map((cr,i)=><div key={i} onClick={()=>onBook?.(cr.book,cr.author)} className="tb" style={{cursor:"pointer"}}><Card T={T} pad="14px 16px"><div style={{display:"flex",alignItems:"center",gap:10}}><div style={{width:28,height:42,borderRadius:"1px 3px 3px 1px",background:`linear-gradient(145deg,${T.acc}CC,#6B2A10)`,boxShadow:"2px 0 6px rgba(0,0,0,.3)",flexShrink:0}}/><div><div style={{fontFamily:T.hd,fontSize:14,fontWeight:700,color:T.tx}}>{cr.book}</div><div style={{fontFamily:T.bd,fontSize:11,color:T.tx3,fontStyle:"italic"}}>{cr.author}</div></div></div></Card></div>)}</div></Sec>
-<Sec T={T} title={<><MapPin size={13} style={{verticalAlign:"middle",marginRight:4}}/>Readers Near You</>}><div style={{display:"flex",gap:5,overflowX:"auto",marginBottom:12,scrollbarWidth:"none"}}><button className="tb" onClick={()=>setLf("all")} style={{padding:"5px 12px",borderRadius:7,border:`1px solid ${lf==="all"?`${T.gold}25`:T.bdr}`,background:lf==="all"?T.gs:"transparent",fontFamily:T.ui,fontSize:10,fontWeight:lf==="all"?700:500,color:lf==="all"?T.gold:T.tx4,cursor:"pointer",whiteSpace:"nowrap"}}>All lenses</button>{Object.entries(LN).map(([k,v])=><button key={k} className="tb" onClick={()=>setLf(k)} style={{padding:"5px 12px",borderRadius:7,border:`1px solid ${lf===k?`${v.c}25`:T.bdr}`,background:lf===k?`${v.c}08`:"transparent",fontFamily:T.ui,fontSize:10,fontWeight:lf===k?700:500,color:lf===k?v.c:T.tx4,cursor:"pointer",whiteSpace:"nowrap"}}>{v.icon} {v.label}</button>)}</div>
-<div style={{display:"flex",flexDirection:"column",gap:8}}>{filtered.map(u=>{const isF=following[u.id];return <Card key={u.id} T={T} pad="14px 16px"><div style={{display:"flex",alignItems:"center",gap:10}}><Av T={T} i={u.in} ink={u.ink} s={40}/><div style={{flex:1,minWidth:0}}><div style={{display:"flex",alignItems:"center",gap:5,flexWrap:"wrap"}}><span style={{fontFamily:T.ui,fontSize:12,fontWeight:700,color:T.tx}}>{u.name}</span><LB T={T} lens={u.lens} compact/><span style={{fontFamily:T.ui,fontSize:9,color:T.tx4,display:"inline-flex",alignItems:"center",gap:2}}><MapPin size={9}/>{u.distance}</span></div><div style={{fontFamily:T.bd,fontSize:11,color:T.tx3,fontStyle:"italic",marginTop:1}}>{u.bio}</div><div style={{fontFamily:T.ui,fontSize:10,color:T.tx4,marginTop:4}}>Reading: <strong style={{color:T.tx2}}>{u.currentBook}</strong></div></div><button className="tb" onClick={()=>setFl(p=>({...p,[u.id]:!p[u.id]}))} style={{padding:"8px 14px",borderRadius:8,border:`1px solid ${isF?`${T.gn}25`:T.bdr}`,background:isF?`${T.gn}06`:"transparent",fontFamily:T.ui,fontSize:11,fontWeight:700,color:isF?T.gn:T.tx3,cursor:"pointer",flexShrink:0,minHeight:40}}>{isF?"✓ Following":"Follow"}</button></div></Card>})}</div></Sec>
-<Sec T={T} title={<><Flame size={13} style={{verticalAlign:"middle",marginRight:4}}/>Trending This Week</>}><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>{TRD.map((b,i)=><div key={i} onClick={()=>onBook?.(b.title,b.author)} className="tb" style={{cursor:"pointer"}}><Card T={T} pad="14px"><div style={{width:38,height:56,borderRadius:"1px 4px 4px 1px",background:`linear-gradient(145deg,${b.c}CC,${b.c}60)`,boxShadow:"2px 0 6px rgba(0,0,0,.3)",marginBottom:10}}/><div style={{fontFamily:T.hd,fontSize:13,fontWeight:700,color:T.tx,lineHeight:1.2,marginBottom:2}}>{b.title}</div><div style={{fontFamily:T.bd,fontSize:10,color:T.tx3,fontStyle:"italic",marginBottom:4}}>{b.author}</div><div style={{display:"flex",gap:6,fontFamily:T.ui,fontSize:9,color:T.tx4}}><span>{b.readers} readers</span><span style={{color:T.gn,fontWeight:700}}>{b.heat}</span></div></Card></div>)}</div></Sec>
-</div>;}
-
-// ─── PRESS SCREEN ────────────────────────────────────────────
-function PressScreen({T}){
-const[tab,setTab]=useState("discover");const[form,setForm]=useState("all");
+const filteredReaders=lf==="all"?readers:readers.filter(u=>u.lens===lf);
+const allBooks=Object.values(BOOK_DATA);
+const allGenres=["All",...new Set(allBooks.flatMap(b=>b.genres||[]))].slice(0,9);
+const bookResults=(bookQ.trim()?allBooks.filter(b=>(b.title||"").toLowerCase().includes(bookQ.toLowerCase())||(b.author||"").toLowerCase().includes(bookQ.toLowerCase())):allBooks).filter(b=>genre==="All"||(b.genres||[]).includes(genre));
 const FF=[{id:"all",l:"All"},{id:"flash",l:"Flash"},{id:"fiction",l:"Fiction"},{id:"essay",l:"Essay"},{id:"poetry",l:"Poetry"}];
-const filtered=form==="all"?PRESS_WORKS:form==="poetry"?PRESS_WORKS.filter(w=>w.form==="poetry"):form==="flash"?PRESS_WORKS.filter(w=>w.words<1000&&w.form!=="poetry"):PRESS_WORKS.filter(w=>w.form===form);
+const pressFiltered=form==="all"?PRESS_WORKS:form==="poetry"?PRESS_WORKS.filter(w=>w.form==="poetry"):form==="flash"?PRESS_WORKS.filter(w=>w.words<1000&&w.form!=="poetry"):PRESS_WORKS.filter(w=>w.form===form);
+const SECS=[{id:"discover",l:"Discover"},{id:"books",l:"Books"},{id:"press",l:"Press"}];
 return <div style={{animation:"en .35s ease both"}}>
-<div style={{marginBottom:16}}><h2 style={{fontFamily:T.hd,fontSize:24,fontWeight:700,color:T.tx,letterSpacing:"-.02em"}}>The Press</h2><p style={{fontFamily:T.bd,fontSize:12,color:T.tx3,fontStyle:"italic",marginTop:2}}>Original work — fiction, poetry, essays, and everything between.</p></div>
-<div style={{display:"flex",gap:0,marginBottom:16,borderBottom:`1px solid ${T.bdr}`}}>{["discover","picks","trending"].map(t=><button key={t} className="tb" onClick={()=>setTab(t)} style={{padding:"10px 16px",border:"none",cursor:"pointer",fontFamily:T.ui,fontSize:12,fontWeight:tab===t?700:500,background:"transparent",color:tab===t?T.tx:T.tx3,borderBottom:tab===t?`2px solid ${T.acc}`:"2px solid transparent"}}>{t==="discover"?"Discover":t==="picks"?"Editor's Picks":"Trending"}</button>)}</div>
-{tab==="discover"&&<><div style={{display:"flex",gap:3,marginBottom:14,overflowX:"auto",scrollbarWidth:"none"}}>{FF.map(f=><button key={f.id} className="tb" onClick={()=>setForm(f.id)} style={{padding:"6px 14px",borderRadius:8,border:`1px solid ${form===f.id?`${T.acc}20`:T.bdr}`,background:form===f.id?`${T.acc}0D`:"transparent",fontFamily:T.ui,fontSize:10,fontWeight:form===f.id?700:500,color:form===f.id?T.acc:T.tx3,cursor:"pointer",whiteSpace:"nowrap"}}>{f.l}</button>)}</div>
-<div style={{display:"flex",flexDirection:"column",gap:12}}>{filtered.map(w=><Card key={w.id} T={T} pad="18px 16px"><div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}><Av T={T} i={w.author.in} ink={w.author.ink} s={32}/><div style={{flex:1}}><div style={{display:"flex",alignItems:"center",gap:5}}><span style={{fontFamily:T.ui,fontSize:12,fontWeight:700,color:T.tx}}>{w.author.name}</span><IB T={T} ink={w.author.ink} compact/></div><div style={{fontFamily:T.ui,fontSize:10,color:T.tx4}}>{w.readTime} min · {w.form}</div></div>{w.attested&&<span style={{fontSize:8,padding:"1px 5px",borderRadius:3,background:`${T.gn}0D`,color:T.gn,fontFamily:T.ui,fontWeight:700}}>✓ HUMAN</span>}</div>
+<div style={{display:"flex",gap:0,marginBottom:20,borderBottom:`1px solid ${T.bdr}`}}>
+{SECS.map(s=><button key={s.id} className="tb" onClick={()=>setSection(s.id)} style={{padding:"10px 18px",border:"none",cursor:"pointer",fontFamily:T.ui,fontSize:13,fontWeight:section===s.id?700:500,background:"transparent",color:section===s.id?T.tx:T.tx3,borderBottom:section===s.id?`2px solid ${T.acc}`:"2px solid transparent"}}>{s.l}</button>)}
+</div>
+
+{section==="discover"&&<>
+<Sec T={T} title={<><BookOpen size={13} style={{verticalAlign:"middle",marginRight:4}}/>Reading Right Now</>} sub="Live">
+<div style={{display:"flex",gap:8,overflowX:"auto",WebkitOverflowScrolling:"touch",scrollbarWidth:"none"}}>
+{CR.slice(0,3).map((cr,i)=><div key={i} onClick={()=>onBook?.(cr.book,cr.author)} className="tb" style={{cursor:"pointer",flex:"0 0 auto",scrollSnapAlign:"start"}}>
+<Card T={T} pad="14px 16px"><div style={{display:"flex",alignItems:"center",gap:10,minWidth:160}}>
+<div style={{width:28,height:42,borderRadius:"1px 3px 3px 1px",background:`linear-gradient(145deg,${T.acc}CC,#6B2A10)`,boxShadow:"2px 0 6px rgba(0,0,0,.3)",flexShrink:0}}/>
+<div><div style={{fontFamily:T.hd,fontSize:14,fontWeight:700,color:T.tx}}>{cr.book}</div><div style={{fontFamily:T.bd,fontSize:11,color:T.tx3,fontStyle:"italic"}}>{cr.author}</div></div>
+</div></Card></div>)}
+</div></Sec>
+<Sec T={T} title={<><MapPin size={13} style={{verticalAlign:"middle",marginRight:4}}/>Readers Near You</>}>
+<div style={{display:"flex",gap:5,overflowX:"auto",marginBottom:12,scrollbarWidth:"none"}}>
+<button className="tb" onClick={()=>setLf("all")} style={{padding:"5px 12px",borderRadius:7,border:`1px solid ${lf==="all"?`${T.gold}25`:T.bdr}`,background:lf==="all"?T.gs:"transparent",fontFamily:T.ui,fontSize:10,fontWeight:lf==="all"?700:500,color:lf==="all"?T.gold:T.tx4,cursor:"pointer",whiteSpace:"nowrap"}}>All</button>
+{Object.entries(LN).map(([k,v])=><button key={k} className="tb" onClick={()=>setLf(k)} style={{padding:"5px 12px",borderRadius:7,border:`1px solid ${lf===k?`${v.c}25`:T.bdr}`,background:lf===k?`${v.c}08`:"transparent",fontFamily:T.ui,fontSize:10,fontWeight:lf===k?700:500,color:lf===k?v.c:T.tx4,cursor:"pointer",whiteSpace:"nowrap"}}>{v.icon} {v.label}</button>)}
+</div>
+<div style={{display:"flex",flexDirection:"column",gap:8}}>
+{filteredReaders.map(u=>{const isF=following[u.id];return <Card key={u.id} T={T} pad="14px 16px">
+<div style={{display:"flex",alignItems:"center",gap:10}}>
+<Av T={T} i={u.in} ink={u.ink} s={40}/>
+<div style={{flex:1,minWidth:0}}>
+<div style={{display:"flex",alignItems:"center",gap:5,flexWrap:"wrap"}}><span style={{fontFamily:T.ui,fontSize:12,fontWeight:700,color:T.tx}}>{u.name}</span><LB T={T} lens={u.lens} compact/><span style={{fontFamily:T.ui,fontSize:9,color:T.tx4,display:"inline-flex",alignItems:"center",gap:2}}><MapPin size={9}/>{u.distance}</span></div>
+<div style={{fontFamily:T.bd,fontSize:11,color:T.tx3,fontStyle:"italic",marginTop:1}}>{u.bio}</div>
+<div style={{fontFamily:T.ui,fontSize:10,color:T.tx4,marginTop:4}}>Reading: <strong style={{color:T.tx2}}>{u.currentBook}</strong></div>
+</div>
+<button className="tb" onClick={()=>setFl(p=>({...p,[u.id]:!p[u.id]}))} style={{padding:"8px 14px",borderRadius:8,border:`1px solid ${isF?`${T.gn}25`:T.bdr}`,background:isF?`${T.gn}06`:"transparent",fontFamily:T.ui,fontSize:11,fontWeight:700,color:isF?T.gn:T.tx3,cursor:"pointer",flexShrink:0,minHeight:40}}>{isF?"✓ Following":"Follow"}</button>
+</div></Card>;})}
+</div></Sec>
+<Sec T={T} title={<><Flame size={13} style={{verticalAlign:"middle",marginRight:4}}/>Trending This Week</>}>
+<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+{TRD.map((b,i)=><div key={i} onClick={()=>onBook?.(b.title,b.author)} className="tb" style={{cursor:"pointer"}}>
+<Card T={T} pad="14px"><div style={{width:38,height:56,borderRadius:"1px 4px 4px 1px",background:`linear-gradient(145deg,${b.c}CC,${b.c}60)`,boxShadow:"2px 0 6px rgba(0,0,0,.3)",marginBottom:10}}/><div style={{fontFamily:T.hd,fontSize:13,fontWeight:700,color:T.tx,lineHeight:1.2,marginBottom:2}}>{b.title}</div><div style={{fontFamily:T.bd,fontSize:10,color:T.tx3,fontStyle:"italic",marginBottom:4}}>{b.author}</div><div style={{display:"flex",gap:6,fontFamily:T.ui,fontSize:9,color:T.tx4}}><span>{b.readers} readers</span><span style={{color:T.gn,fontWeight:700}}>{b.heat}</span></div></Card>
+</div>)}
+</div></Sec>
+</>}
+
+{section==="books"&&<>
+<div style={{position:"relative",marginBottom:12}}>
+<input value={bookQ} onChange={e=>setBookQ(e.target.value)} placeholder="Search by title or author…" style={{width:"100%",padding:"12px 14px 12px 40px",borderRadius:12,background:T.bg2,border:`1px solid ${bookQ?T.bdrA:T.bdr}`,fontFamily:T.ui,fontSize:13,color:T.tx,outline:"none"}}/>
+<span style={{position:"absolute",left:13,top:"50%",transform:"translateY(-50%)",fontSize:16,color:T.tx4,pointerEvents:"none"}}>⌕</span>
+{bookQ&&<button className="tb" onClick={()=>setBookQ("")} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:T.tx4,cursor:"pointer",fontSize:14,padding:4}}>✕</button>}
+</div>
+<div style={{display:"flex",gap:5,overflowX:"auto",scrollbarWidth:"none",marginBottom:16}}>
+{allGenres.map(g=><button key={g} className="tb" onClick={()=>setGenre(g)} style={{padding:"5px 13px",borderRadius:20,border:`1px solid ${genre===g?`${T.acc}25`:T.bdr}`,background:genre===g?`${T.acc}0D`:"transparent",fontFamily:T.ui,fontSize:10,fontWeight:genre===g?700:500,color:genre===g?T.acc:T.tx4,cursor:"pointer",whiteSpace:"nowrap"}}>{g}</button>)}
+</div>
+{bookResults.length===0&&<div style={{textAlign:"center",padding:"40px 16px",fontFamily:T.bd,fontSize:14,color:T.tx3,fontStyle:"italic"}}>No books found for "{bookQ}"</div>}
+<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+{bookResults.map((b,i)=><button key={i} className="tb" onClick={()=>onBook?.(b.title,b.author)} style={{display:"flex",flexDirection:"column",padding:"0 0 12px",borderRadius:14,background:T.sf,border:`1px solid ${T.bdr}`,cursor:"pointer",textAlign:"left",width:"100%",overflow:"hidden"}}>
+<div style={{width:"100%",paddingTop:"130%",position:"relative",background:`linear-gradient(145deg,${b.cc||T.acc}CC,${b.cc||T.acc}55)`,marginBottom:10}}>
+<div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom,transparent 40%,rgba(0,0,0,.5))",display:"flex",flexDirection:"column",justifyContent:"flex-end",padding:"10px 10px"}}>
+<div style={{fontFamily:T.hd,fontSize:13,fontWeight:700,color:"#fff",lineHeight:1.2}}>{b.title}</div>
+</div>
+</div>
+<div style={{padding:"0 10px"}}>
+<div style={{fontFamily:T.bd,fontSize:10,color:T.tx3,fontStyle:"italic",marginBottom:5}}>{b.author}</div>
+<div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+<div style={{display:"flex",gap:1}}>{[1,2,3,4,5].map(s=><span key={s} style={{fontSize:9,color:s<=Math.round(b.rating||0)?T.gold:T.tx4}}>★</span>)}</div>
+<span style={{fontFamily:T.mn,fontSize:9,color:T.tx4}}>{b.year}</span>
+</div>
+</div>
+</button>)}
+</div>
+</>}
+
+{section==="press"&&<>
+<div style={{marginBottom:16}}><h2 style={{fontFamily:T.hd,fontSize:22,fontWeight:700,color:T.tx,letterSpacing:"-.02em"}}>The Press</h2><p style={{fontFamily:T.bd,fontSize:12,color:T.tx3,fontStyle:"italic",marginTop:2}}>Original work — fiction, poetry, essays, and everything between.</p></div>
+<div style={{display:"flex",gap:0,marginBottom:16,borderBottom:`1px solid ${T.bdr}`}}>{["discover","picks","trending"].map(t=><button key={t} className="tb" onClick={()=>setPT(t)} style={{padding:"10px 16px",border:"none",cursor:"pointer",fontFamily:T.ui,fontSize:12,fontWeight:pressTab===t?700:500,background:"transparent",color:pressTab===t?T.tx:T.tx3,borderBottom:pressTab===t?`2px solid ${T.acc}`:"2px solid transparent"}}>{t==="discover"?"Discover":t==="picks"?"Editor's Picks":"Trending"}</button>)}</div>
+{pressTab==="discover"&&<><div style={{display:"flex",gap:3,marginBottom:14,overflowX:"auto",scrollbarWidth:"none"}}>{FF.map(f=><button key={f.id} className="tb" onClick={()=>setForm(f.id)} style={{padding:"6px 14px",borderRadius:8,border:`1px solid ${form===f.id?`${T.acc}20`:T.bdr}`,background:form===f.id?`${T.acc}0D`:"transparent",fontFamily:T.ui,fontSize:10,fontWeight:form===f.id?700:500,color:form===f.id?T.acc:T.tx3,cursor:"pointer",whiteSpace:"nowrap"}}>{f.l}</button>)}</div>
+<div style={{display:"flex",flexDirection:"column",gap:12}}>{pressFiltered.map(w=><Card key={w.id} T={T} pad="18px 16px">
+<div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}><Av T={T} i={w.author.in} ink={w.author.ink} s={32}/><div style={{flex:1}}><div style={{display:"flex",alignItems:"center",gap:5}}><span style={{fontFamily:T.ui,fontSize:12,fontWeight:700,color:T.tx}}>{w.author.name}</span><IB T={T} ink={w.author.ink} compact/></div><div style={{fontFamily:T.ui,fontSize:10,color:T.tx4}}>{w.readTime} min · {w.form}</div></div>{w.attested&&<span style={{fontSize:8,padding:"1px 5px",borderRadius:3,background:`${T.gn}0D`,color:T.gn,fontFamily:T.ui,fontWeight:700}}>✓ HUMAN</span>}</div>
 <h3 style={{fontFamily:T.hd,fontSize:18,fontWeight:700,color:T.tx,fontStyle:"italic",lineHeight:1.3,marginBottom:8}}>{w.title}</h3>
 {w.tags?.length>0&&<div style={{display:"flex",gap:3,flexWrap:"wrap",marginBottom:8}}>{w.tags.map(t=><span key={t} style={{padding:"2px 7px",borderRadius:4,fontSize:8,fontWeight:600,fontFamily:T.ui,background:`${T.acc}08`,color:T.acc}}>{t}</span>)}{w.moods?.map(t=><span key={t} style={{padding:"2px 7px",borderRadius:4,fontSize:8,fontFamily:T.ui,background:`${T.gold}06`,color:T.gold,fontStyle:"italic"}}>{t}</span>)}</div>}
 <div style={{fontFamily:w.form==="poetry"?T.hd:T.bd,fontSize:w.form==="poetry"?14:13.5,lineHeight:w.form==="poetry"?1.9:1.7,color:T.tx2,fontWeight:w.form==="poetry"?400:300,whiteSpace:"pre-wrap",marginBottom:10}}>{w.excerpt.length>250?w.excerpt.slice(0,250)+"…":w.excerpt}</div>
 {w.featured&&w.note&&<div style={{padding:"8px 12px",borderRadius:8,background:`${T.gold}04`,border:`1px solid ${T.gold}08`,marginBottom:8}}><div style={{fontFamily:T.bd,fontSize:10.5,color:T.gold,fontStyle:"italic",display:"flex",alignItems:"center",gap:4}}><Palette size={10}/>{w.note}</div></div>}
-<div style={{display:"flex",alignItems:"center",gap:10,fontFamily:T.ui,fontSize:10,color:T.tx4}}><span>{w.words.toLocaleString()} words</span><span style={{opacity:.3}}>·</span><span>♡ {w.likes}</span><span style={{display:"inline-flex",alignItems:"center",gap:2}}><MessageCircle size={9}/>{w.comments}</span><span>◆ {w.shelved}</span></div></Card>)}</div></>}
-{tab==="picks"&&<div style={{display:"flex",flexDirection:"column",gap:12}}><Card T={T} pad="16px"><div style={{fontFamily:T.hd,fontSize:16,fontWeight:700,color:T.gold,marginBottom:4,display:"flex",alignItems:"center",gap:5}}><Palette size={14}/>Editor's Picks</div><div style={{fontFamily:T.bd,fontSize:11,color:T.tx3,fontStyle:"italic",lineHeight:1.6}}>Work that embodies what Précis is for — writing that earns its place on the page.</div></Card>{PRESS_WORKS.filter(w=>w.featured).map(w=><Card key={w.id} T={T} pad="16px"><h3 style={{fontFamily:T.hd,fontSize:16,fontWeight:700,color:T.tx,fontStyle:"italic",marginBottom:4}}>{w.title}</h3><div style={{fontFamily:T.ui,fontSize:10,color:T.tx3,marginBottom:6}}>{w.author.name} · {w.form} · {w.readTime} min</div>{w.note&&<div style={{fontFamily:T.bd,fontSize:11,color:T.gold,fontStyle:"italic",display:"flex",alignItems:"center",gap:4}}><Palette size={10}/>{w.note}</div>}</Card>)}</div>}
-{tab==="trending"&&<div style={{display:"flex",flexDirection:"column",gap:10}}>{[...PRESS_WORKS].sort((a,b)=>(b.likes+b.shelved)-(a.likes+a.shelved)).map((w,i)=><div key={w.id} style={{display:"flex",alignItems:"flex-start",gap:10}}><div style={{fontFamily:T.hd,fontSize:22,fontWeight:700,color:`${T.gold}30`,width:28,textAlign:"right",flexShrink:0,marginTop:4}}>{i+1}</div><Card T={T} pad="14px 16px"><h3 style={{fontFamily:T.hd,fontSize:15,fontWeight:700,color:T.tx,fontStyle:"italic",marginBottom:2}}>{w.title}</h3><div style={{fontFamily:T.ui,fontSize:10,color:T.tx3}}>{w.author.name} · ♡ {w.likes} · ◆ {w.shelved}</div></Card></div>)}</div>}
+<div style={{display:"flex",alignItems:"center",gap:10,fontFamily:T.ui,fontSize:10,color:T.tx4}}><span>{w.words.toLocaleString()} words</span><span style={{opacity:.3}}>·</span><span>♡ {w.likes}</span><span style={{display:"inline-flex",alignItems:"center",gap:2}}><MessageCircle size={9}/>{w.comments}</span><span>◆ {w.shelved}</span></div>
+</Card>)}</div></>}
+{pressTab==="picks"&&<div style={{display:"flex",flexDirection:"column",gap:12}}><Card T={T} pad="16px"><div style={{fontFamily:T.hd,fontSize:16,fontWeight:700,color:T.gold,marginBottom:4,display:"flex",alignItems:"center",gap:5}}><Palette size={14}/>Editor's Picks</div><div style={{fontFamily:T.bd,fontSize:11,color:T.tx3,fontStyle:"italic",lineHeight:1.6}}>Work that embodies what Précis is for — writing that earns its place on the page.</div></Card>{PRESS_WORKS.filter(w=>w.featured).map(w=><Card key={w.id} T={T} pad="16px"><h3 style={{fontFamily:T.hd,fontSize:16,fontWeight:700,color:T.tx,fontStyle:"italic",marginBottom:4}}>{w.title}</h3><div style={{fontFamily:T.ui,fontSize:10,color:T.tx3,marginBottom:6}}>{w.author.name} · {w.form} · {w.readTime} min</div>{w.note&&<div style={{fontFamily:T.bd,fontSize:11,color:T.gold,fontStyle:"italic",display:"flex",alignItems:"center",gap:4}}><Palette size={10}/>{w.note}</div>}</Card>)}</div>}
+{pressTab==="trending"&&<div style={{display:"flex",flexDirection:"column",gap:10}}>{[...PRESS_WORKS].sort((a,b)=>(b.likes+b.shelved)-(a.likes+a.shelved)).map((w,i)=><div key={w.id} style={{display:"flex",alignItems:"flex-start",gap:10}}><div style={{fontFamily:T.hd,fontSize:22,fontWeight:700,color:`${T.gold}30`,width:28,textAlign:"right",flexShrink:0,marginTop:4}}>{i+1}</div><Card T={T} pad="14px 16px"><h3 style={{fontFamily:T.hd,fontSize:15,fontWeight:700,color:T.tx,fontStyle:"italic",marginBottom:2}}>{w.title}</h3><div style={{fontFamily:T.ui,fontSize:10,color:T.tx3}}>{w.author.name} · ♡ {w.likes} · ◆ {w.shelved}</div></Card></div>)}</div>}
+</>}
 </div>;}
-
-// ─── COMPASS (Synopsis Engine) ───────────────────────────────
-function CompassScreen({T}){
-const[q,setQ]=useState("");const[mode,setMode]=useState("overview");const[result,setResult]=useState(null);
-const BOOKS=[{title:"Beloved",author:"Toni Morrison"},{title:"Intermezzo",author:"Sally Rooney"},{title:"The Vegetarian",author:"Han Kang"},{title:"Orbital",author:"Samantha Harvey"},{title:"James",author:"Percival Everett"}];
-const matches=q.trim()?BOOKS.filter(b=>b.title.toLowerCase().includes(q.toLowerCase())||b.author.toLowerCase().includes(q.toLowerCase())):[];
-return <div style={{animation:"en .35s ease both"}}>
-<Sec T={T} title="⌖ Compass" sub="AI-powered book analysis with Copyright Guard v1.2">
-<Card T={T} pad="20px 16px"><div style={{fontFamily:T.ui,fontSize:10,fontWeight:700,color:T.tx4,letterSpacing:".08em",textTransform:"uppercase",marginBottom:10}}>Search a book to analyze</div>
-<div style={{position:"relative",marginBottom:12}}><input value={q} onChange={e=>{setQ(e.target.value);setResult(null);}} placeholder="Search by title or author…" style={{width:"100%",padding:"12px 14px 12px 36px",borderRadius:10,background:T.bg2,border:`1px solid ${q?T.bdrA:T.bdr}`,fontFamily:T.ui,fontSize:13,color:T.tx,outline:"none"}}/><span style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",fontSize:14,color:T.tx4,pointerEvents:"none"}}>⌕</span></div>
-{matches.length>0&&!result&&<div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:12}}>{matches.map(b=><button key={b.title} className="tb" onClick={()=>{setResult(b);setQ(b.title);}} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:8,border:`1px solid ${T.bdr}`,background:"transparent",cursor:"pointer",minHeight:44,textAlign:"left",width:"100%"}}><div style={{width:22,height:32,borderRadius:3,background:`linear-gradient(140deg,${T.acc}90,${T.acc}50)`,flexShrink:0}}/><div><div style={{fontFamily:T.ui,fontSize:12,fontWeight:600,color:T.tx}}>{b.title}</div><div style={{fontFamily:T.ui,fontSize:10,color:T.tx3}}>{b.author}</div></div></button>)}</div>}
-{result&&<><div style={{display:"flex",gap:4,marginBottom:14,overflowX:"auto",scrollbarWidth:"none"}}>{["overview","themes","characters","structure","quotes","compare"].map(m=><button key={m} className="tb" onClick={()=>setMode(m)} style={{padding:"7px 14px",borderRadius:8,border:`1px solid ${mode===m?T.bdrA:T.bdr}`,background:mode===m?T.gs:"transparent",fontFamily:T.ui,fontSize:10,fontWeight:mode===m?700:500,color:mode===m?T.gold:T.tx3,cursor:"pointer",whiteSpace:"nowrap",textTransform:"capitalize"}}>{m}</button>)}</div>
-<Card T={T} pad="16px"><div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}><div style={{width:32,height:48,borderRadius:3,background:`linear-gradient(145deg,${T.acc}CC,#6B2A10)`,boxShadow:"2px 0 6px rgba(0,0,0,.3)",flexShrink:0}}/><div><div style={{fontFamily:T.hd,fontSize:18,fontWeight:700,color:T.tx}}>{result.title}</div><div style={{fontFamily:T.bd,fontSize:12,color:T.tx3,fontStyle:"italic"}}>{result.author}</div></div></div>
-<div style={{padding:"16px",borderRadius:10,background:`${T.gold}04`,border:`1px solid ${T.gold}08`}}><div style={{fontFamily:T.ui,fontSize:9,fontWeight:700,color:T.gold,letterSpacing:".08em",textTransform:"uppercase",marginBottom:8}}>⌖ {mode} Analysis</div><div style={{fontFamily:T.bd,fontSize:13,lineHeight:1.7,color:T.tx2,fontWeight:300}}>This analysis would be generated by the Synopsis Engine via Claude Sonnet 4.6 with Copyright Guard v1.2. The engine provides 6 analytical lenses, 3 output formats, and fiction/nonfiction detection.</div><div style={{fontFamily:T.ui,fontSize:10,color:T.tx4,marginTop:10,display:"flex",alignItems:"center",gap:6}}><Lock size={10} style={{verticalAlign:"middle"}}/> Copyright Guard active · Estimated cost: ~$0.02</div></div></Card></>}
-</Card></Sec></div>;}
 
 // ─── SHELF SCREEN ────────────────────────────────────────────
 function ShelfScreen({T,onBook}){
@@ -333,7 +385,7 @@ return <div style={{minHeight:"100vh",background:T.bg,color:T.tx,display:"flex",
 </div>;}
 
 // ─── MAIN APP ────────────────────────────────────────────────
-const TABS=[{id:"feed",label:"Feed",icon:"⊞"},{id:"explore",label:"Explore",icon:"◎"},{id:"press",label:"Press",icon:"✎"},{id:"compass",label:"Compass",icon:"⌖"},{id:"shelf",label:"Shelf",icon:"▤"}];
+const TABS=[{id:"feed",label:"Feed",icon:"⊞"},{id:"explore",label:"Explore",icon:"◎"},{id:"press",label:"Press",icon:"✎"},{id:"shelf",label:"Shelf",icon:"▤"},{id:"profile",label:"Profile",icon:null}];
 
 export default function PrecisApp(){
 const{T,tid,setTid}=useTheme();const[tab,setTab]=useState("feed");const[feed,setFeed]=useState(FI);const[searchQ,setSearchQ]=useState("");const[searchOpen,setSO]=useState(false);const[subView,setSV]=useState(null);const[activeBook,setAB]=useState(null);const[readerBook,setRB]=useState(null);
@@ -354,10 +406,10 @@ if(subView==="clubs")return <ClubsScreen T={T}/>;
 if(subView==="challenges")return <ChallengesScreen T={T}/>;
 if(subView==="settings")return <SettingsScreen T={T} tid={tid} setTid={setTid}/>;
 if(tab==="feed")return <FeedScreen T={T} feed={feed} onToggle={onToggle} onBook={onBook} searchQ={searchQ}/>;
-if(tab==="explore")return <ExploreScreen T={T} onBook={onBook}/>;
-if(tab==="press")return <PressScreen T={T}/>;
-if(tab==="compass")return <CompassScreen T={T}/>;
+if(tab==="explore")return <ExploreScreen key="explore" T={T} onBook={onBook}/>;
+if(tab==="press")return <ExploreScreen key="press" T={T} onBook={onBook} defaultSection="press"/>;
 if(tab==="shelf")return <ShelfScreen T={T} onBook={onBook}/>;
+if(tab==="profile")return <ProfileScreen T={T}/>;
 return null;}
 
 if(readerBook){const bd=BOOK_DATA[readerBook.title]||readerBook;return <div style={{minHeight:"100vh",background:T.bg,color:T.tx}}><style>{gc(T)}</style><ReaderScreen T={T} book={bd} onClose={()=>setRB(null)}/></div>;}
@@ -372,7 +424,6 @@ return <div style={{minHeight:"100vh",background:T.bg,color:T.tx,paddingBottom:7
 <button className="tb" onClick={()=>{setSO(!searchOpen);if(searchOpen)setSearchQ("");}} style={{background:"none",border:"none",fontSize:18,color:searchOpen?T.acc:T.tx3,cursor:"pointer",padding:4,minWidth:36,minHeight:36,display:"flex",alignItems:"center",justifyContent:"center"}}>{searchOpen?"✕":"⌕"}</button>
 <button className="tb" onClick={()=>setSV(sv=>sv==="notifications"?null:"notifications")} style={{background:"none",border:"none",fontSize:16,color:T.tx3,cursor:"pointer",padding:4,minWidth:36,minHeight:36,display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}><Bell size={16}/>{unread>0&&<div style={{position:"absolute",top:2,right:2,width:14,height:14,borderRadius:"50%",background:T.acc,fontFamily:T.ui,fontSize:8,fontWeight:700,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}>{unread}</div>}</button>
 <button className="tb" onClick={()=>setSV(sv=>sv==="messages"?null:"messages")} style={{background:"none",border:"none",fontSize:16,color:T.tx3,cursor:"pointer",padding:4,minWidth:36,minHeight:36,display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>✉{msgUnread>0&&<div style={{position:"absolute",top:2,right:2,width:14,height:14,borderRadius:"50%",background:T.acc,fontFamily:T.ui,fontSize:8,fontWeight:700,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}>{msgUnread}</div>}</button>
-<button className="tb" onClick={()=>setSV(sv=>sv==="profile"?null:"profile")} style={{background:"none",border:"none",cursor:"pointer",padding:0}}><Av T={T} i={ME.in} ink={ME.ink} s={30}/></button>
 <button className="tb" onClick={()=>setSV(sv=>sv==="settings"?null:"settings")} style={{background:"none",border:"none",color:subView==="settings"?T.acc:T.tx4,cursor:"pointer",padding:4,minWidth:36,minHeight:36,display:"flex",alignItems:"center",justifyContent:"center"}}><Settings size={16}/></button>
 </header>
 
@@ -388,7 +439,7 @@ return <div style={{minHeight:"100vh",background:T.bg,color:T.tx,paddingBottom:7
 <button className="tb" onClick={()=>setSV(sv=>sv==="notifications"?null:"notifications")} style={{background:"none",border:"none",fontSize:16,color:T.tx3,cursor:"pointer",padding:6,position:"relative"}}><Bell size={16}/>{unread>0&&<div style={{position:"absolute",top:0,right:0,width:14,height:14,borderRadius:"50%",background:T.acc,fontFamily:T.ui,fontSize:8,fontWeight:700,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}>{unread}</div>}</button>
 <button className="tb" onClick={()=>setSV(sv=>sv==="messages"?null:"messages")} style={{background:"none",border:"none",fontSize:16,color:T.tx3,cursor:"pointer",padding:6,marginRight:8,position:"relative"}}>✉{msgUnread>0&&<div style={{position:"absolute",top:0,right:0,width:14,height:14,borderRadius:"50%",background:T.acc,fontFamily:T.ui,fontSize:8,fontWeight:700,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}>{msgUnread}</div>}</button>
 <TP T={T} tid={tid} setTid={setTid}/>
-<button className="tb" onClick={()=>setSV(sv=>sv==="profile"?null:"profile")} style={{display:"flex",alignItems:"center",gap:8,marginLeft:8,cursor:"pointer",background:"none",border:"none"}}><Av T={T} i={ME.in} ink={ME.ink} s={32}/><div style={{lineHeight:1.2,textAlign:"left"}}><div style={{fontFamily:T.ui,fontSize:12,fontWeight:600,color:T.tx}}>{ME.name}</div><IB T={T} ink={ME.ink} compact/></div></button>
+<button className="tb" onClick={()=>{setTab("profile");setSV(null);}} style={{display:"flex",alignItems:"center",gap:8,marginLeft:8,cursor:"pointer",background:"none",border:"none"}}><Av T={T} i={ME.in} ink={ME.ink} s={32}/><div style={{lineHeight:1.2,textAlign:"left"}}><div style={{fontFamily:T.ui,fontSize:12,fontWeight:600,color:T.tx}}>{ME.name}</div><IB T={T} ink={ME.ink} compact/></div></button>
 </div></header>
 
 {/* CONTENT */}
@@ -401,7 +452,6 @@ return <div style={{minHeight:"100vh",background:T.bg,color:T.tx,paddingBottom:7
 
 {/* MOBILE BOTTOM BAR */}
 <nav className="bb" style={{position:"fixed",bottom:0,left:0,right:0,zIndex:100,background:`${T.bg}F2`,backdropFilter:"blur(20px) saturate(1.3)",borderTop:`1px solid ${T.bdr}`,display:"flex",alignItems:"stretch",height:60,paddingBottom:"env(safe-area-inset-bottom,0px)"}}>
-{TABS.map(t=>{const a=tab===t.id&&!subView;return <button key={t.id} className="tb" onClick={()=>{setTab(t.id);setSV(null);}} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,background:"none",border:"none",cursor:"pointer",color:a?T.gold:T.tx4,minHeight:48,position:"relative"}}>{a&&<div style={{position:"absolute",top:0,left:"50%",transform:"translateX(-50%)",width:20,height:2,borderRadius:1,background:T.gold}}/>}<span style={{fontSize:20,lineHeight:1}}>{t.icon}</span><span style={{fontFamily:T.ui,fontSize:9,fontWeight:a?700:500}}>{t.label}</span></button>})}
-<div onClick={()=>{setCI({type:null,book:null});setSV("compose");}} style={{position:"absolute",top:-22,left:"50%",transform:"translateX(-50%)",width:48,height:48,borderRadius:"50%",background:`linear-gradient(135deg,${T.acc},#9A4520)`,boxShadow:`0 4px 16px ${T.acc}50`,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",zIndex:10}}><span style={{fontSize:20,color:"#fff",marginTop:-1}}>✎</span></div>
+{TABS.map(t=>{const a=tab===t.id&&!subView;return <button key={t.id} className="tb" onClick={()=>{setTab(t.id);setSV(null);}} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,background:"none",border:"none",cursor:"pointer",color:a?T.gold:T.tx4,minHeight:48,position:"relative"}}>{a&&<div style={{position:"absolute",top:0,left:"50%",transform:"translateX(-50%)",width:20,height:2,borderRadius:1,background:T.gold}}/>}{t.id==="profile"?<div style={{width:26,height:26,borderRadius:"50%",border:`2px solid ${a?T.gold:"transparent"}`,overflow:"hidden",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}><Av T={T} i={ME.in} ink={ME.ink} s={22}/></div>:<span style={{fontSize:20,lineHeight:1}}>{t.icon}</span>}<span style={{fontFamily:T.ui,fontSize:9,fontWeight:a?700:500}}>{t.label}</span></button>;})}
 </nav>
 </div>;}
