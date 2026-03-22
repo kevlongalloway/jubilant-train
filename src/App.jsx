@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Microscope, Heart, Lightbulb, Drama, Map, Bell, MapPin, BookOpen, Flame, Palette, Lock, MessageCircle, Reply, Settings } from "lucide-react";
+import * as API from "./api.js";
 
 // ═══════════════════════════════════════════════════════════════
 // PRÉCIS — Full App UI (Mobile-First)
@@ -12,6 +13,8 @@ function useTheme(){const[tid,setTid]=useState("twilight");return{T:THEMES[tid],
 const TIERS=[{name:"Fresh Ink",min:0,c:"#8A8474"},{name:"Wet Ink",min:25,c:"#7AAAB8"},{name:"Set Ink",min:100,c:"#7AAA80"},{name:"Deep Ink",min:500,c:"#C4A265"},{name:"Indelible",min:2000,c:"#C06A30"}];
 const gT=n=>{for(let i=TIERS.length-1;i>=0;i--)if(n>=TIERS[i].min)return TIERS[i];return TIERS[0];};
 const fN=n=>n>=10000?(n/1000).toFixed(0)+"k":n>=1000?(n/1000).toFixed(1)+"k":String(n);
+// Format ISO timestamp to relative time (e.g., "2h", "3d")
+const fTime=iso=>{if(!iso)return "";const d=new Date(iso);const h=Math.round((Date.now()-d.getTime())/3600000);if(h<1)return"now";if(h<24)return h+"h";if(h<168)return Math.round(h/24)+"d";return Math.round(h/168)+"w";};
 const LN={analyst:{icon:<Microscope size={10}/>,label:"Analyst",c:"#5B9BD5"},empath:{icon:<Heart size={10}/>,label:"Empath",c:"#D4788C"},philosopher:{icon:<Lightbulb size={10}/>,label:"Philosopher",c:"#D4A855"},storyteller:{icon:<Drama size={10}/>,label:"Storyteller",c:"#9B7ED4"},explorer:{icon:<Map size={10}/>,label:"Explorer",c:"#5BAD7A"},alchemist:{icon:"✧",label:"Alchemist",c:"#C4A06A"}};
 const PT={original:{label:"Original",icon:"✎",ck:"acc"},review:{label:"Review",icon:"◈",ck:"gold"},recommendation:{label:"Rec",icon:"⬨",ck:"gn"},spoiler:{label:"Spoiler",icon:"⚠",ck:"rd"}};
 
@@ -67,7 +70,7 @@ return <article className="cl" style={{background:T.sf,borderRadius:14,border:`1
 </article>;}
 
 // ─── FEED SCREEN ─────────────────────────────────────────────
-function FeedScreen({T,feed,onToggle,onBook,onUser,searchQ}){
+function FeedScreen({T,feed,onToggle,onBook,onUser,searchQ,loadMore,feedLoading,hasMoreFeed}){
 const[filter,setFilter]=useState("foryou");const[pi,setPi]=useState(0);
 const FL=[{id:"foryou",l:"✦ For You"},{id:"all",l:"All"},{id:"original",l:"✎ Original"},{id:"review",l:"◈ Reviews"},{id:"recommendation",l:"⬨ Recs"},{id:"spoiler",l:"⚠ Spoiler"}];
 const filtered=filter==="foryou"?feed.filter(f=>f.following||f.lensMatch):filter==="all"?feed:feed.filter(f=>f.type===filter);
@@ -80,6 +83,8 @@ return <>
 <div style={{display:"flex",flexDirection:"column",gap:10}}>{searched.length===0?<Empty T={T} icon="⌕" title={searchQ?`Nothing for "${searchQ}"`:"No posts here yet"} sub={searchQ?"Try different keywords.":"Be the first to write one."}/>:searched.map((item,i)=><FC key={item.id} T={T} item={item} onToggle={onToggle} onBook={onBook} onUser={onUser} index={i}/>)}</div>
 <div style={{marginTop:16}}><Card T={T} pad="16px 16px 8px"><div style={{fontFamily:T.hd,fontSize:16,fontWeight:600,color:T.tx,marginBottom:12}}>Trending Now</div>{TRD.map((b,i)=><div key={i} className="tb" style={{display:"flex",alignItems:"center",gap:10,padding:"10px 4px",cursor:"pointer",borderBottom:i<TRD.length-1?`1px solid ${T.bdr}`:"none",minHeight:48}}><div style={{fontFamily:T.mn,fontSize:11,fontWeight:500,color:T.tx4,width:18,textAlign:"center"}}>{i+1}</div><div style={{width:22,height:32,borderRadius:3,flexShrink:0,background:`linear-gradient(140deg,${b.c}AA,${b.c}60)`}}/><div style={{flex:1,minWidth:0}}><div style={{fontFamily:T.ui,fontSize:12,fontWeight:600,color:T.tx}}>{b.title}</div><div style={{fontFamily:T.ui,fontSize:10,color:T.tx3}}>{b.author}</div></div><span style={{fontFamily:T.mn,fontSize:10,fontWeight:500,color:T.gn,background:`${T.gn}0D`,padding:"2px 6px",borderRadius:3}}>{b.heat}</span></div>)}</Card></div>
 {searched.length>0&&<div style={{textAlign:"center",padding:"40px 16px 24px",borderTop:`1px solid ${T.bdr}`,marginTop:16}}><div style={{fontFamily:T.hd,fontSize:20,fontWeight:600,color:T.tx,fontStyle:"italic",marginBottom:6}}>You're caught up.</div><p style={{fontFamily:T.bd,fontSize:13,color:T.tx3,lineHeight:1.6,maxWidth:340,margin:"0 auto 16px"}}>Everything new has been read. The page is yours.</p></div>}
+{/* Load more posts button for infinite scroll */}
+{hasMoreFeed&&searched.length>0&&<div style={{textAlign:"center",padding:"16px 0 8px"}}><button className="tb" disabled={feedLoading} onClick={()=>loadMore&&loadMore()} style={{padding:"10px 24px",borderRadius:10,border:`1px solid ${T.bdr}`,background:T.bg2,fontFamily:T.ui,fontSize:12,fontWeight:600,color:feedLoading?T.tx4:T.tx,cursor:feedLoading?"default":"pointer"}}>{feedLoading?"Loading…":"Load more"}</button></div>}
 </>;}
 
 // ─── EXPLORE SCREEN ──────────────────────────────────────────
@@ -390,14 +395,108 @@ return <div style={{minHeight:"100vh",background:T.bg,color:T.tx,display:"flex",
 // ─── MAIN APP ────────────────────────────────────────────────
 const TABS=[{id:"feed",label:"Feed",icon:"⊞"},{id:"explore",label:"Explore",icon:"◎"},{id:"shelf",label:"Shelf",icon:"▤"},{id:"profile",label:"Profile",icon:null}];
 
+
+// ─── LOGIN / REGISTER SCREEN ─────────────────────────────────
+function AuthScreen({T,onAuth}){
+const[mode,setMode]=useState("login");
+const[email,setEmail]=useState("");
+const[password,setPw]=useState("");
+const[username,setUn]=useState("");
+const[lens,setLens]=useState("explorer");
+const[loading,setLoading]=useState(false);
+const[error,setError]=useState("");
+
+const submit=async(e)=>{
+  e.preventDefault();setError("");setLoading(true);
+  try{
+    let result;
+    if(mode==="login"){result=await API.login({email,password});}
+    else{result=await API.register({username,handle:"@"+username.toLowerCase().replace(/\s+/g,"_"),email,password,lens});}
+    onAuth(result.user);
+  }catch(err){setError(err.message||"Something went wrong");}
+  finally{setLoading(false);}
+};
+
+return <div style={{minHeight:"100vh",background:T.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24}}>
+<div style={{fontFamily:T.hd,fontSize:32,fontWeight:700,color:T.tx,marginBottom:4}}>Pr<span style={{color:T.acc}}>é</span>cis</div>
+<div style={{fontFamily:T.bd,fontSize:13,color:T.tx3,fontStyle:"italic",marginBottom:32}}>A literary social reading app</div>
+<div style={{width:"100%",maxWidth:360,background:T.sf,borderRadius:16,border:`1px solid ${T.bdr}`,padding:28}}>
+<div style={{display:"flex",gap:0,marginBottom:24,borderBottom:`1px solid ${T.bdr}`}}>
+{["login","register"].map(m=><button key={m} className="tb" onClick={()=>{setMode(m);setError("");}} style={{flex:1,padding:"10px",border:"none",cursor:"pointer",fontFamily:T.ui,fontSize:13,fontWeight:mode===m?700:500,background:"transparent",color:mode===m?T.tx:T.tx3,borderBottom:mode===m?`2px solid ${T.acc}`:"2px solid transparent"}}>{m==="login"?"Sign In":"Create Account"}</button>)}
+</div>
+{error&&<div style={{background:`${T.rd}10`,border:`1px solid ${T.rd}30`,borderRadius:8,padding:"10px 14px",fontFamily:T.ui,fontSize:12,color:T.rd,marginBottom:16}}>{error}</div>}
+<form onSubmit={submit}>
+{mode==="register"&&<>
+<div style={{marginBottom:14}}>
+<div style={{fontFamily:T.ui,fontSize:11,fontWeight:600,color:T.tx3,marginBottom:5}}>USERNAME</div>
+<input value={username} onChange={e=>setUn(e.target.value)} placeholder="your name" required style={{width:"100%",padding:"10px 14px",borderRadius:10,background:T.bg2,border:`1px solid ${T.bdr}`,fontFamily:T.ui,fontSize:13,color:T.tx,outline:"none"}}/>
+</div>
+<div style={{marginBottom:14}}>
+<div style={{fontFamily:T.ui,fontSize:11,fontWeight:600,color:T.tx3,marginBottom:5}}>READING LENS</div>
+<select value={lens} onChange={e=>setLens(e.target.value)} style={{width:"100%",padding:"10px 14px",borderRadius:10,background:T.bg2,border:`1px solid ${T.bdr}`,fontFamily:T.ui,fontSize:13,color:T.tx,outline:"none"}}>
+{["analyst","empath","philosopher","storyteller","explorer","alchemist"].map(l=><option key={l} value={l}>{l.charAt(0).toUpperCase()+l.slice(1)}</option>)}
+</select>
+</div>
+</>}
+<div style={{marginBottom:14}}>
+<div style={{fontFamily:T.ui,fontSize:11,fontWeight:600,color:T.tx3,marginBottom:5}}>EMAIL</div>
+<input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com" required style={{width:"100%",padding:"10px 14px",borderRadius:10,background:T.bg2,border:`1px solid ${T.bdr}`,fontFamily:T.ui,fontSize:13,color:T.tx,outline:"none"}}/>
+</div>
+<div style={{marginBottom:20}}>
+<div style={{fontFamily:T.ui,fontSize:11,fontWeight:600,color:T.tx3,marginBottom:5}}>PASSWORD</div>
+<input type="password" value={password} onChange={e=>setPw(e.target.value)} placeholder="••••••••" required minLength={6} style={{width:"100%",padding:"10px 14px",borderRadius:10,background:T.bg2,border:`1px solid ${T.bdr}`,fontFamily:T.ui,fontSize:13,color:T.tx,outline:"none"}}/>
+</div>
+<button type="submit" disabled={loading} style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:loading?T.tx4:T.acc,color:"#fff",fontFamily:T.ui,fontSize:13,fontWeight:700,cursor:loading?"default":"pointer"}}>
+{loading?"Please wait…":mode==="login"?"Sign In →":"Create Account →"}
+</button>
+</form>
+<div style={{marginTop:16,textAlign:"center",fontFamily:T.ui,fontSize:11,color:T.tx4}}>
+Demo: maya@precis.app / precis123
+</div>
+</div>
+</div>;}
+
 export default function PrecisApp(){
-const{T,tid,setTid}=useTheme();const[tab,setTab]=useState("feed");const[feed,setFeed]=useState(FI);const[searchQ,setSearchQ]=useState("");const[searchOpen,setSO]=useState(false);const[subView,setSV]=useState(null);const[activeBook,setAB]=useState(null);const[readerBook,setRB]=useState(null);const[viewedUser,setVU]=useState(null);
+const{T,tid,setTid}=useTheme();const[tab,setTab]=useState("feed");const[feed,setFeed]=useState(FI);
+// API integration state
+const[apiUser,setApiUser]=useState(()=>API.getStoredUser());
+const[feedCursor,setFeedCursor]=useState(null);
+const[hasMoreFeed,setHasMoreFeed]=useState(true);
+const[feedLoading,setFeedLoading]=useState(false);
+// loadFeed: fetch personalized feed from API, append=true for pagination
+const loadFeed=useCallback(async(cursor=null,append=false)=>{
+  if(feedLoading)return;
+  setFeedLoading(true);
+  try{
+    const result=await API.getFeed(cursor,20);
+    const mapped=(result.posts||[]).map(p=>({
+      id:p.id,type:p.type,
+      user:{id:p.user.id,name:p.user.username,handle:p.user.handle,in:(p.user.username||"?").slice(0,2).toUpperCase(),ink:p.user.ink||0,lens:p.user.lens||"explorer"},
+      time:fTime(p.createdAt),text:p.content,tags:p.tags||[],
+      bookRef:p.book?{title:p.book.title,author:p.book.author,cc:(p.book.metadata||{}).cc||"#5A7AB4"}:null,
+      likes:p.likes||0,comments:p.comments||0,shelved:p.saves||0,reposts:0,
+      isLiked:p.isLiked||false,isShelved:p.isSaved||false,isReposted:false,following:true,
+    }));
+    setFeed(prev=>append?[...prev,...mapped]:(mapped.length>0?mapped:FI));
+    setFeedCursor(result.nextCursor);
+    setHasMoreFeed(!!result.nextCursor);
+  }catch(err){
+    console.warn("[feed] API error, using mock data:",err.message);
+    if(!append)setFeed(FI);
+  }finally{setFeedLoading(false);}
+// eslint-disable-next-line react-hooks/exhaustive-deps
+},[]);
+// Initial feed load when user is authenticated
+useEffect(()=>{if(apiUser){loadFeed(null,false);}else{setFeed(FI);setHasMoreFeed(false);}},
+// eslint-disable-next-line react-hooks/exhaustive-deps
+[apiUser?.id]);
+const[searchQ,setSearchQ]=useState("");const[searchOpen,setSO]=useState(false);const[subView,setSV]=useState(null);const[activeBook,setAB]=useState(null);const[readerBook,setRB]=useState(null);const[viewedUser,setVU]=useState(null);
 const[composeInit,setCI]=useState({type:null,book:null});
 const onBook=useCallback((title,author)=>{setAB({title,author});setSV(null);},[]);
 const onReview=useCallback((book)=>{setCI({type:"review",book});setSV("compose");setAB(null);},[]);
 const onUser=useCallback((user)=>{if(user.id===ME.id){setTab("profile");setSV(null);setVU(null);}else{setVU(user);setSV("user");setAB(null);}},[]);
 
-const onToggle=useCallback((id,type)=>{setFeed(prev=>prev.map(item=>{if(item.id!==id)return item;if(type==="like")return{...item,isLiked:!item.isLiked,likes:item.likes+(item.isLiked?-1:1)};if(type==="shelf")return{...item,isShelved:!item.isShelved,shelved:item.shelved+(item.isShelved?-1:1)};if(type==="repost")return{...item,isReposted:!item.isReposted,reposts:item.reposts+(item.isReposted?-1:1)};return item;}));},[]);
+const onToggle=useCallback((id,type)=>{setFeed(prev=>prev.map(item=>{if(item.id!==id)return item;if(type==="like"){if(apiUser)API.toggleInteraction(id,"like").catch(()=>{});return{...item,isLiked:!item.isLiked,likes:item.likes+(item.isLiked?-1:1)};}if(type==="shelf"){if(apiUser)API.toggleInteraction(id,"save").catch(()=>{});return{...item,isShelved:!item.isShelved,shelved:item.shelved+(item.isShelved?-1:1)};}if(type==="repost")return{...item,isReposted:!item.isReposted,reposts:item.reposts+(item.isReposted?-1:1)};return item;}));},[]);
 const unread=NOTIFS.filter(n=>!n.read).length;const msgUnread=CONVOS.reduce((a,c)=>a+c.unread,0);
 
 function renderMain(){
@@ -410,12 +509,14 @@ if(subView==="notifications")return <NotifsScreen T={T}/>;
 if(subView==="clubs")return <ClubsScreen T={T}/>;
 if(subView==="challenges")return <ChallengesScreen T={T}/>;
 if(subView==="settings")return <SettingsScreen T={T} tid={tid} setTid={setTid}/>;
-if(tab==="feed")return <FeedScreen T={T} feed={feed} onToggle={onToggle} onBook={onBook} onUser={onUser} searchQ={searchQ}/>;
+if(tab==="feed")return <FeedScreen T={T} feed={feed} onToggle={onToggle} onBook={onBook} onUser={onUser} searchQ={searchQ} loadMore={()=>loadFeed(feedCursor,true)} feedLoading={feedLoading} hasMoreFeed={hasMoreFeed}/>;
 if(tab==="explore")return <ExploreScreen T={T} onBook={onBook}/>;
 if(tab==="shelf")return <ShelfScreen T={T} onBook={onBook}/>;
 if(tab==="profile")return <ProfileScreen T={T}/>;
 return null;}
 
+// Show auth screen when not logged in (optional — shows mock data without auth)
+if(!apiUser){return <div style={{minHeight:"100vh",background:T.bg,color:T.tx}}><style>{gc(T)}</style><AuthScreen T={T} onAuth={(user)=>{setApiUser(user);setFeed([]);}}/></div>;}
 if(readerBook){const bd=BOOK_DATA[readerBook.title]||readerBook;return <div style={{minHeight:"100vh",background:T.bg,color:T.tx}}><style>{gc(T)}</style><ReaderScreen T={T} book={bd} onClose={()=>setRB(null)}/></div>;}
 return <div style={{minHeight:"100vh",background:T.bg,color:T.tx,paddingBottom:72}}>
 <style>{gc(T)}</style>

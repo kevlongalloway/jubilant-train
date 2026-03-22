@@ -1,0 +1,100 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  handle    String   @unique
+  email     String   @unique
+  password  String
+  bio       String?
+  lens      String   @default("explorer") // analyst, empath, philosopher, storyteller, explorer, alchemist
+  ink       Int      @default(0)
+  createdAt DateTime @default(now())
+
+  posts        Post[]
+  interactions Interaction[]
+  followers    Follow[]      @relation("following")
+  following    Follow[]      @relation("follower")
+  preferences  UserPreference?
+
+  @@index([createdAt])
+}
+
+model Book {
+  id       String   @id @default(uuid())
+  title    String
+  author   String
+  genres   String[] // PostgreSQL native array
+  metadata Json     @default("{}") // rating, year, excerpt, color, etc.
+
+  posts Post[]
+
+  @@index([title])
+}
+
+model Post {
+  id        String   @id @default(uuid())
+  userId    String
+  bookId    String?
+  content   String
+  type      String   @default("original") // review, recommendation, quote, list, original
+  tags      String[] @default([])
+  createdAt DateTime @default(now())
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book         Book?         @relation(fields: [bookId], references: [id])
+  interactions Interaction[]
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([bookId])
+}
+
+model Interaction {
+  id        String   @id @default(uuid())
+  userId    String
+  postId    String
+  type      String   // like, comment, save, click, view
+  value     Int      @default(1) // weighted value for scoring
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  // Prevent duplicate interaction types (user can only like once)
+  @@unique([userId, postId, type])
+  @@index([userId])
+  @@index([postId])
+  @@index([createdAt])
+}
+
+model Follow {
+  id          String   @id @default(uuid())
+  followerId  String
+  followingId String
+  type        String   @default("user") // user or genre
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+}
+
+// Denormalized preference vector for fast feed scoring
+model UserPreference {
+  userId           String   @id
+  preferenceVector Json     @default("{}") // { "fantasy": 0.8, "romance": 0.2, ... }
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
