@@ -25,14 +25,16 @@
     </div>
     <script>
       window.addEventListener('error', function(e) {
+        // Skip cross-origin script errors (e.g. Eruda, extensions) — they have no useful details
+        if (!e.filename || e.lineno === 0) return;
         var el = document.getElementById('app-fallback-msg');
-        if (el) el.textContent = 'Error: ' + e.message + ' (' + (e.filename||'') + ':' + e.lineno + ')';
+        if (el) el.textContent = 'Error: ' + e.message + ' (' + e.filename + ':' + e.lineno + ')';
         var fb = document.getElementById('app-fallback');
         if (fb) fb.style.display = 'flex';
       });
       window.addEventListener('unhandledrejection', function(e) {
         var el = document.getElementById('app-fallback-msg');
-        if (el) el.textContent = 'Error: ' + (e.reason && e.reason.message ? e.reason.message : e.reason);
+        if (el) el.textContent = 'Error: ' + (e.reason && e.reason.message ? e.reason.message : String(e.reason));
         var fb = document.getElementById('app-fallback');
         if (fb) fb.style.display = 'flex';
       });
