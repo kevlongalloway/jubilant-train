@@ -117,11 +117,15 @@ export async function getPosts({ userId, type, bookId, cursor, limit = 20 } = {}
   return apiFetch(`/posts?${params}`);
 }
 
-export async function createPost({ content, type, bookId, tags }) {
+export async function createPost({ content, type, bookId, bookTitle, bookAuthor, tags }) {
   return apiFetch('/posts', {
     method: 'POST',
-    body: JSON.stringify({ content, type, bookId, tags }),
+    body: JSON.stringify({ content, type, bookId, bookTitle, bookAuthor, tags }),
   });
+}
+
+export async function followUser(userId) {
+  return apiFetch(`/users/${userId}/follow`, { method: 'POST' });
 }
 
 export async function deletePost(postId) {

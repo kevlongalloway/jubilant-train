@@ -201,11 +201,11 @@ return <div style={{animation:"en .35s ease both"}}>
 
 // ─── PROFILE ─────────────────────────────────────────────────
 function ProfileScreen({T,user=ME,apiUser}){
-const[tab,setTab]=useState("posts");const[following,setFollowing]=useState(false);const[stats,setStats]=useState(null);const[profilePosts,setProfilePosts]=useState(null);const isMe=user.id===ME.id;useEffect(()=>{const uid=isMe&&apiUser?apiUser.id:user.id;if(uid&&uid!=="me")API.getUser(uid).then(setStats).catch(()=>{});},[isMe?apiUser?.id:user.id]);useEffect(()=>{if(!stats?.id)return;API.getPosts({userId:stats.id,limit:50}).then(r=>setProfilePosts((r.posts||[]).map(p=>({id:p.id,type:p.type,title:p.book?.title||p.content.slice(0,60),text:p.content,bookRef:p.book?{title:p.book.title,author:p.book.author,cc:(p.book.metadata||{}).cc||"#5A7AB4"}:null,likes:p.likes||0,comments:p.comments||0,shelved:p.saves||0,tags:p.tags||[],time:fTime(p.createdAt)})))).catch(()=>{});},[stats?.id]);const displayUser=stats?{...user,name:stats.username,h:stats.handle,bio:stats.bio||user.bio,ink:stats.ink,lens:stats.lens,in:(stats.username||"?").slice(0,2).toUpperCase()}:isMe&&apiUser?{...user,name:apiUser.username,h:apiUser.handle,bio:apiUser.bio||user.bio,ink:apiUser.ink||user.ink,lens:apiUser.lens||user.lens,in:(apiUser.username||"?").slice(0,2).toUpperCase()}:user;const tier=gT(displayUser.ink);const lens=LN[displayUser.lens];
-const userPosts=profilePosts??FI.filter(f=>f.user.id===user.id);
+const[tab,setTab]=useState("posts");const[following,setFollowing]=useState(false);const[stats,setStats]=useState(null);const[profilePosts,setProfilePosts]=useState(null);const isMe=user.id===ME.id;useEffect(()=>{const uid=isMe&&apiUser?apiUser.id:user.id;if(uid&&uid!=="me")API.getUser(uid).then(setStats).catch(()=>{});},[isMe?apiUser?.id:user.id]);useEffect(()=>{if(!stats?.id)return;API.getPosts({userId:stats.id,limit:50}).then(r=>setProfilePosts((r.posts||[]).map(p=>({id:p.id,type:p.type,title:p.book?.title||p.content.slice(0,60),text:p.content,bookRef:p.book?{title:p.book.title,author:p.book.author,cc:(p.book.metadata||{}).cc||"#5A7AB4"}:null,likes:p.likes||0,comments:p.comments||0,shelved:p.saves||0,tags:p.tags||[],time:fTime(p.createdAt)})))).catch(()=>{});},[stats?.id]);const displayUser=stats?{...user,name:stats.username,h:stats.handle,bio:stats.bio||user.bio,ink:stats.ink,lens:stats.lens,in:(stats.username||"?").slice(0,2).toUpperCase()}:isMe&&apiUser?{...user,name:apiUser.username,h:apiUser.handle,bio:apiUser.bio||user.bio,ink:apiUser.ink||user.ink,lens:apiUser.lens||user.lens,in:(apiUser.username||"?").slice(0,2).toUpperCase()}:user;const tier=gT(displayUser.ink);const lens=LN[displayUser.lens];useEffect(()=>{if(stats?.isFollowing!==undefined)setFollowing(stats.isFollowing);},[stats?.id]);
+const userPosts=profilePosts??[];
 return <div style={{animation:"en .35s ease both"}}>
 <Card T={T} pad="24px 16px" mb={16}><div style={{display:"flex",alignItems:"center",gap:14,marginBottom:16}}><Av T={T} i={displayUser.in} ink={displayUser.ink} s={56}/><div style={{flex:1}}><div style={{fontFamily:T.hd,fontSize:22,fontWeight:700,color:T.tx}}>{displayUser.name}</div><div style={{fontFamily:T.ui,fontSize:12,color:T.tx4,marginTop:2}}>{displayUser.h}</div><div style={{display:"flex",gap:6,marginTop:6}}><IB T={T} ink={displayUser.ink}/><LB T={T} lens={displayUser.lens}/></div></div>
-{isMe?<button className="tb" style={{padding:"8px 16px",borderRadius:8,border:`1px solid ${T.bdr}`,background:"transparent",fontFamily:T.ui,fontSize:11,fontWeight:600,color:T.tx3,cursor:"pointer",minHeight:40}}>Edit</button>:<button className="tb" onClick={()=>setFollowing(f=>!f)} style={{padding:"8px 16px",borderRadius:8,border:`1px solid ${following?T.bdr:T.acc}`,background:following?"transparent":T.acc,fontFamily:T.ui,fontSize:11,fontWeight:700,color:following?T.tx3:"#fff",cursor:"pointer",minHeight:40}}>{following?"Following":"Follow"}</button>}
+{isMe?<button className="tb" style={{padding:"8px 16px",borderRadius:8,border:`1px solid ${T.bdr}`,background:"transparent",fontFamily:T.ui,fontSize:11,fontWeight:600,color:T.tx3,cursor:"pointer",minHeight:40}}>Edit</button>:<button className="tb" onClick={()=>{const newVal=!following;setFollowing(newVal);API.followUser(stats?.id||user.id).then(r=>setFollowing(r.following)).catch(()=>setFollowing(!newVal));}} style={{padding:"8px 16px",borderRadius:8,border:`1px solid ${following?T.bdr:T.acc}`,background:following?"transparent":T.acc,fontFamily:T.ui,fontSize:11,fontWeight:700,color:following?T.tx3:"#fff",cursor:"pointer",minHeight:40}}>{following?"Following":"Follow"}</button>}
 </div>
 {displayUser.bio&&<div style={{fontFamily:T.bd,fontSize:13,color:T.tx2,fontStyle:"italic",lineHeight:1.6,marginBottom:16}}>{displayUser.bio}</div>}
 <div style={{display:"flex",gap:20,fontFamily:T.ui,fontSize:12}}><div><strong style={{color:T.tx,fontSize:16}}>{stats?._count?.posts??user.posts??userPosts.length}</strong><div style={{color:T.tx4,fontSize:10}}>Posts</div></div><div><strong style={{color:T.tx,fontSize:16}}>{stats?._count?.followers??user.followers??0}</strong><div style={{color:T.tx4,fontSize:10}}>Followers</div></div><div><strong style={{color:T.tx,fontSize:16}}>{stats?._count?.following??user.following??0}</strong><div style={{color:T.tx4,fontSize:10}}>Following</div></div><div><strong style={{color:T.tx,fontSize:16}}>{stats?.booksRead??user.booksRead??0}</strong><div style={{color:T.tx4,fontSize:10}}>Books Read</div></div></div>
@@ -258,7 +258,8 @@ const[book,setBook]=useState(initialBook);
 const[bookQ,setBookQ]=useState("");
 const[title,setTitle]=useState("");
 const[body,setBody]=useState("");
-const[published,setPub]=useState(false);
+const[published,setPub]=useState(false);const[submitting,setSub]=useState(false);const[pubErr,setPubErr]=useState(null);
+const handlePublish=async()=>{if(submitting||!body.trim())return;setSub(true);setPubErr(null);try{await API.createPost({content:(title?`${title}\n\n${body}`:body).trim(),type,bookTitle:book?.title||null,bookAuthor:book?.author||null,tags:[]});setPub(true);}catch(e){setPubErr(e.message||"Failed to publish.");}finally{setSub(false);};};
 const types=[{id:"original",label:"Original Work",desc:"Fiction, poetry, essays",icon:"✎"},{id:"review",label:"Review",desc:"Your take on a book",icon:"◈"},{id:"recommendation",label:"Recommendation",desc:"Share a must-read",icon:"⬨"},{id:"spoiler",label:"Spoiler Zone",desc:"Discuss freely with warnings",icon:"⚠"}];
 const needsBook=type==="review"||type==="recommendation"||type==="spoiler";
 const allBooks=Object.values(BOOK_DATA).concat(MY_BOOKS.filter(b=>!BOOK_DATA[b.title]).map(b=>({...b,cc:null})));
@@ -295,7 +296,7 @@ return <div style={{animation:"en .3s ease both"}}>
 <button className="tb" onClick={()=>initialBook?onClose():setBook(null)} style={{fontFamily:T.ui,fontSize:12,color:T.tx3,background:"none",border:"none",cursor:"pointer",minHeight:40}}>← Back</button>
 <TT T={T} type={type}/>
 </div>
-<button className="tb" onClick={()=>setPub(true)} disabled={!body.trim()} style={{padding:"8px 20px",borderRadius:8,border:"none",background:body.trim()?T.acc:`${T.tx4}20`,color:body.trim()?"#fff":T.tx4,fontFamily:T.ui,fontSize:12,fontWeight:700,cursor:body.trim()?"pointer":"default",minHeight:40}}>Publish</button>
+<button className="tb" onClick={handlePublish} disabled={!body.trim()||submitting} style={{padding:"8px 20px",borderRadius:8,border:"none",background:body.trim()&&!submitting?T.acc:`${T.tx4}20`,color:body.trim()&&!submitting?"#fff":T.tx4,fontFamily:T.ui,fontSize:12,fontWeight:700,cursor:body.trim()&&!submitting?"pointer":"default",minHeight:40}}>{submitting?"Publishing…":"Publish"}</button>
 </div>
 {book?.title&&<div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:10,background:T.bg2,border:`1px solid ${T.bdrA}`,marginBottom:14}}>
 <div style={{width:24,height:36,borderRadius:"2px 3px 3px 2px",flexShrink:0,background:`linear-gradient(140deg,${book.cc||T.acc}90,${book.cc||T.acc}50)`,boxShadow:"1px 0 4px rgba(0,0,0,.2)"}}/>
@@ -305,6 +306,7 @@ return <div style={{animation:"en .3s ease both"}}>
 {(type==="original"||type==="review"||type==="spoiler")&&<input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Title…" style={{width:"100%",padding:"12px 0",borderRadius:0,background:"transparent",border:"none",borderBottom:`1px solid ${T.bdr}`,fontFamily:T.hd,fontSize:20,fontWeight:600,color:T.tx,outline:"none",marginBottom:12}}/>}
 <textarea value={body} onChange={e=>setBody(e.target.value)} placeholder={type==="original"?"Start writing…":"Share your thoughts…"} rows={8} style={{width:"100%",padding:"12px 0",background:"transparent",border:"none",fontFamily:T.bd,fontSize:14.5,lineHeight:1.7,color:T.tx2,outline:"none",resize:"vertical",minHeight:200}}/>
 <div style={{display:"flex",alignItems:"center",gap:12,marginTop:16,paddingTop:12,borderTop:`1px solid ${T.bdr}`}}><span style={{fontFamily:T.mn,fontSize:10,color:T.tx4}}>{body.split(/\s+/).filter(Boolean).length} words</span>{type==="original"&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:3,background:`${T.gn}0D`,color:T.gn,fontFamily:T.ui,fontWeight:700}}>✓ These words are mine</span>}</div>
+{pubErr&&<div style={{fontFamily:T.ui,fontSize:11,color:"#C0392B",marginTop:10,padding:"8px 12px",borderRadius:8,background:"#C0392B10"}}>{pubErr}</div>}
 </div>;}
 
 // ─── THEME PICKER ────────────────────────────────────────────
@@ -457,7 +459,7 @@ Demo: maya@precis.app / precis123
 </div>;}
 
 export default function PrecisApp(){
-const{T,tid,setTid}=useTheme();const[tab,setTab]=useState("feed");const[feed,setFeed]=useState(FI);
+const{T,tid,setTid}=useTheme();const[tab,setTab]=useState("feed");const[feed,setFeed]=useState([]);
 // API integration state
 const[apiUser,setApiUser]=useState(()=>API.getStoredUser());
 const[feedCursor,setFeedCursor]=useState(null);
@@ -477,24 +479,24 @@ const loadFeed=useCallback(async(cursor=null,append=false)=>{
       likes:p.likes||0,comments:p.comments||0,shelved:p.saves||0,reposts:0,
       isLiked:p.isLiked||false,isShelved:p.isSaved||false,isReposted:false,following:true,
     }));
-    setFeed(prev=>append?[...prev,...mapped]:(mapped.length>0?mapped:FI));
+    setFeed(prev=>append?[...prev,...mapped]:mapped);
     setFeedCursor(result.nextCursor);
     setHasMoreFeed(!!result.nextCursor);
   }catch(err){
-    console.warn("[feed] API error, using mock data:",err.message);
-    if(!append)setFeed(FI);
+    console.warn("[feed] API error:",err.message);
+    if(!append)setFeed([]);
   }finally{setFeedLoading(false);}
 // eslint-disable-next-line react-hooks/exhaustive-deps
 },[]);
 // Initial feed load when user is authenticated
-useEffect(()=>{if(apiUser){loadFeed(null,false);}else{setFeed(FI);setHasMoreFeed(false);}},
+useEffect(()=>{if(apiUser){loadFeed(null,false);}else{setFeed([]);setHasMoreFeed(false);}},
 // eslint-disable-next-line react-hooks/exhaustive-deps
 [apiUser?.id]);
 const[searchQ,setSearchQ]=useState("");const[searchOpen,setSO]=useState(false);const[subView,setSV]=useState(null);const[activeBook,setAB]=useState(null);const[readerBook,setRB]=useState(null);const[viewedUser,setVU]=useState(null);
 const[composeInit,setCI]=useState({type:null,book:null});
 const onBook=useCallback((title,author)=>{setAB({title,author});setSV(null);},[]);
 const onReview=useCallback((book)=>{setCI({type:"review",book});setSV("compose");setAB(null);},[]);
-const onUser=useCallback((user)=>{if(user.id===ME.id){setTab("profile");setSV(null);setVU(null);}else{setVU(user);setSV("user");setAB(null);}},[]);
+const onUser=useCallback((user)=>{if(user.id===apiUser?.id){setTab("profile");setSV(null);setVU(null);}else{setVU(user);setSV("user");setAB(null);}},[apiUser?.id]);
 
 const onToggle=useCallback((id,type)=>{setFeed(prev=>prev.map(item=>{if(item.id!==id)return item;if(type==="like"){if(apiUser)API.toggleInteraction(id,"like").catch(()=>{});return{...item,isLiked:!item.isLiked,likes:item.likes+(item.isLiked?-1:1)};}if(type==="shelf"){if(apiUser)API.toggleInteraction(id,"save").catch(()=>{});return{...item,isShelved:!item.isShelved,shelved:item.shelved+(item.isShelved?-1:1)};}if(type==="repost")return{...item,isReposted:!item.isReposted,reposts:item.reposts+(item.isReposted?-1:1)};return item;}));},[]);
 const unread=NOTIFS.filter(n=>!n.read).length;const msgUnread=CONVOS.reduce((a,c)=>a+c.unread,0);
@@ -544,7 +546,7 @@ return <div style={{minHeight:"100vh",background:T.bg,color:T.tx,paddingBottom:7
 <button className="tb" onClick={()=>setSV(sv=>sv==="notifications"?null:"notifications")} style={{background:"none",border:"none",fontSize:16,color:T.tx3,cursor:"pointer",padding:6,position:"relative"}}><Bell size={16}/>{unread>0&&<div style={{position:"absolute",top:0,right:0,width:14,height:14,borderRadius:"50%",background:T.acc,fontFamily:T.ui,fontSize:8,fontWeight:700,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}>{unread}</div>}</button>
 <button className="tb" onClick={()=>setSV(sv=>sv==="messages"?null:"messages")} style={{background:"none",border:"none",fontSize:16,color:T.tx3,cursor:"pointer",padding:6,marginRight:8,position:"relative"}}>✉{msgUnread>0&&<div style={{position:"absolute",top:0,right:0,width:14,height:14,borderRadius:"50%",background:T.acc,fontFamily:T.ui,fontSize:8,fontWeight:700,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}>{msgUnread}</div>}</button>
 <TP T={T} tid={tid} setTid={setTid}/>
-<button className="tb" onClick={()=>{setTab("profile");setSV(null);}} style={{display:"flex",alignItems:"center",gap:8,marginLeft:8,cursor:"pointer",background:"none",border:"none"}}><Av T={T} i={ME.in} ink={ME.ink} s={32}/><div style={{lineHeight:1.2,textAlign:"left"}}><div style={{fontFamily:T.ui,fontSize:12,fontWeight:600,color:T.tx}}>{ME.name}</div><IB T={T} ink={ME.ink} compact/></div></button>
+<button className="tb" onClick={()=>{setTab("profile");setSV(null);}} style={{display:"flex",alignItems:"center",gap:8,marginLeft:8,cursor:"pointer",background:"none",border:"none"}}><Av T={T} i={(apiUser?.username||"?").slice(0,2).toUpperCase()} ink={apiUser?.ink||0} s={32}/><div style={{lineHeight:1.2,textAlign:"left"}}><div style={{fontFamily:T.ui,fontSize:12,fontWeight:600,color:T.tx}}>{apiUser?.username||""}</div><IB T={T} ink={apiUser?.ink||0} compact/></div></button>
 </div></header>
 
 {/* CONTENT */}
@@ -562,6 +564,6 @@ return <div style={{minHeight:"100vh",background:T.bg,color:T.tx,paddingBottom:7
 <div onClick={()=>{setCI({type:null,book:null});setSV("compose");}} style={{position:"absolute",top:-22,width:52,height:52,borderRadius:"50%",background:`linear-gradient(135deg,${T.acc},#9A4520)`,boxShadow:`0 4px 16px ${T.acc}50`,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",zIndex:10}}><span style={{fontSize:22,color:"#fff",marginTop:-1}}>✎</span></div>
 <span style={{fontFamily:T.ui,fontSize:9,fontWeight:500,color:T.tx4,marginTop:2}}>Publish</span>
 </div>
-{TABS.slice(2).map(t=>{const a=tab===t.id&&!subView;return <button key={t.id} className="tb" onClick={()=>{setTab(t.id);setSV(null);}} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,background:"none",border:"none",cursor:"pointer",color:a?T.gold:T.tx4,minHeight:48,position:"relative"}}>{a&&<div style={{position:"absolute",top:0,left:"50%",transform:"translateX(-50%)",width:20,height:2,borderRadius:1,background:T.gold}}/>}{t.id==="profile"?<div style={{width:26,height:26,borderRadius:"50%",border:`2px solid ${a?T.gold:"transparent"}`,overflow:"hidden",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}><Av T={T} i={ME.in} ink={ME.ink} s={22}/></div>:<span style={{fontSize:20,lineHeight:1}}>{t.icon}</span>}<span style={{fontFamily:T.ui,fontSize:9,fontWeight:a?700:500}}>{t.label}</span></button>;})}
+{TABS.slice(2).map(t=>{const a=tab===t.id&&!subView;return <button key={t.id} className="tb" onClick={()=>{setTab(t.id);setSV(null);}} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,background:"none",border:"none",cursor:"pointer",color:a?T.gold:T.tx4,minHeight:48,position:"relative"}}>{a&&<div style={{position:"absolute",top:0,left:"50%",transform:"translateX(-50%)",width:20,height:2,borderRadius:1,background:T.gold}}/>}{t.id==="profile"?<div style={{width:26,height:26,borderRadius:"50%",border:`2px solid ${a?T.gold:"transparent"}`,overflow:"hidden",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}><Av T={T} i={(apiUser?.username||"?").slice(0,2).toUpperCase()} ink={apiUser?.ink||0} s={22}/></div>:<span style={{fontSize:20,lineHeight:1}}>{t.icon}</span>}<span style={{fontFamily:T.ui,fontSize:9,fontWeight:a?700:500}}>{t.label}</span></button>;})}
 </nav>
 </div>;}

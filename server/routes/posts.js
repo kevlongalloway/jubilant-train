@@ -93,14 +93,28 @@ router.get('/:id', optionalAuth, async (req, res, next) => {
 // POST /api/posts
 router.post('/', requireAuth, async (req, res, next) => {
   try {
-    const { content, type = 'original', bookId, tags = [] } = req.body;
+    const { content, type = 'original', bookId, bookTitle, bookAuthor, tags = [] } = req.body;
 
     if (!content || content.trim().length === 0) {
       return res.status(400).json({ error: 'content is required' });
     }
 
-    // Validate bookId if provided
-    if (bookId) {
+    // Resolve bookId — accept either an explicit id or title+author (find-or-create)
+    let resolvedBookId = bookId || null;
+    if (!resolvedBookId && bookTitle) {
+      let book = await prisma.book.findFirst({
+        where: { title: { equals: bookTitle, mode: 'insensitive' } },
+      });
+      if (!book) {
+        book = await prisma.book.create({
+          data: { title: bookTitle, author: bookAuthor || 'Unknown', genres: [], metadata: {} },
+        });
+      }
+      resolvedBookId = book.id;
+    }
+
+    // Validate bookId if provided directly
+    if (bookId && !resolvedBookId) {
       const book = await prisma.book.findUnique({ where: { id: bookId } });
       if (!book) return res.status(404).json({ error: 'Book not found' });
     }
@@ -110,7 +124,7 @@ router.post('/', requireAuth, async (req, res, next) => {
         userId: req.user.id,
         content: content.trim(),
         type,
-        bookId: bookId || null,
+        bookId: resolvedBookId,
         tags: Array.isArray(tags) ? tags : [],
       },
       include: {
