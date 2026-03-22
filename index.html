@@ -14,7 +14,29 @@
     <title>Précis</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Fallback shown if JS fails to load or execute -->
+      <div id="app-fallback" style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#111620;color:#E4DED2;font-family:system-ui">
+        <div style="text-align:center">
+          <div style="font-size:24px;margin-bottom:8px">Précis</div>
+          <div id="app-fallback-msg" style="font-size:13px;color:#7A7468">Loading…</div>
+        </div>
+      </div>
+    </div>
+    <script>
+      window.addEventListener('error', function(e) {
+        var el = document.getElementById('app-fallback-msg');
+        if (el) el.textContent = 'Error: ' + e.message + ' (' + (e.filename||'') + ':' + e.lineno + ')';
+        var fb = document.getElementById('app-fallback');
+        if (fb) fb.style.display = 'flex';
+      });
+      window.addEventListener('unhandledrejection', function(e) {
+        var el = document.getElementById('app-fallback-msg');
+        if (el) el.textContent = 'Error: ' + (e.reason && e.reason.message ? e.reason.message : e.reason);
+        var fb = document.getElementById('app-fallback');
+        if (fb) fb.style.display = 'flex';
+      });
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
