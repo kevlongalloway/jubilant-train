@@ -106,13 +106,15 @@ function computeFinalScore(post, counts, userVector, followedIds, freshnessDecay
  */
 async function getCandidates(userId, followedIds) {
   const followedArray = [...followedIds];
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  // Use a 30-day window so seeded content stays visible long after deployment.
+  // If the pool is still thin we fall back to all-time posts below.
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
   // Run 3 candidate queries in parallel for speed
   const [recentPosts, followedPosts, trendingPosts] = await Promise.all([
-    // 1. Recent posts from all users (last 7 days)
+    // 1. Recent posts from all users (last 30 days)
     prisma.post.findMany({
-      where: { createdAt: { gte: sevenDaysAgo }, userId: { not: userId } },
+      where: { createdAt: { gte: thirtyDaysAgo }, userId: { not: userId } },
       orderBy: { createdAt: 'desc' },
       take: 200,
       include: { user: { select: { id: true, username: true, handle: true, lens: true, ink: true } }, book: true },
@@ -128,12 +130,11 @@ async function getCandidates(userId, followedIds) {
         })
       : Promise.resolve([]),
 
-    // 3. Trending posts: high total interaction counts (join via subquery)
+    // 3. Trending posts: any age, has interactions
     prisma.post.findMany({
       where: {
-        createdAt: { gte: sevenDaysAgo },
         userId: { not: userId },
-        interactions: { some: {} }, // Has at least one interaction
+        interactions: { some: {} },
       },
       orderBy: { createdAt: 'desc' },
       take: 100,
@@ -150,6 +151,18 @@ async function getCandidates(userId, followedIds) {
       candidates.push(post);
       if (candidates.length >= CANDIDATE_LIMIT) break;
     }
+  }
+
+  // Fallback: if the pool is thin (e.g. fresh DB or old seed data),
+  // pull all posts regardless of age so the feed is never empty.
+  if (candidates.length < 15) {
+    const fallback = await prisma.post.findMany({
+      where: { userId: { not: userId }, id: { notIn: [...seen] } },
+      orderBy: { createdAt: 'desc' },
+      take: CANDIDATE_LIMIT - candidates.length,
+      include: { user: { select: { id: true, username: true, handle: true, lens: true, ink: true } }, book: true },
+    });
+    candidates.push(...fallback);
   }
 
   return candidates;
@@ -199,15 +212,17 @@ async function generateFeed(userId, cursor = null, limit = FEED_PAGE_SIZE) {
     getUserInteractionMap(userId, candidateIds),
   ]);
 
-  // 4. Score all candidates
+  // 4. Score all candidates — add ±20% random jitter so the feed
+  //    shows a different ordering on every load (not a fixed list).
   const scored = candidates.map(post => {
     const counts = interactionCounts[post.id] || {};
     const decay = computeFreshnessDecay(post.createdAt);
-    const score = computeFinalScore(post, counts, userVector, followedIds, decay);
+    const base = computeFinalScore(post, counts, userVector, followedIds, decay);
+    const jitter = 0.80 + Math.random() * 0.40; // 0.80–1.20×
 
     return {
       post,
-      score,
+      score: base * jitter,
       counts,
       userInteractions: userInteractionMap[post.id] || new Set(),
       alreadySeen: seenIds.has(post.id),
