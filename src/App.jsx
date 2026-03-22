@@ -88,9 +88,9 @@ const[newComment,setNewComment]=useState("");
 const[replyTo,setReplyTo]=useState(null);// {id,parentId,username}
 const[posting,setPosting]=useState(false);
 const[expanded,setExpanded]=useState(new Set());
-const[barVisible,setBarVisible]=useState(false);// true when post has scrolled above viewport
+const[barVisible,setBarVisible]=useState(false);
 const inputRef=useRef(null);
-const postRef=useRef(null);
+const commentsRef=useRef(null);
 
 useEffect(()=>{
   API.getComments(post.id).then(data=>{
@@ -98,13 +98,14 @@ useEffect(()=>{
   }).catch(()=>setComments([]));
 },[post.id]);
 
-// Show fixed comment bar only after the post card scrolls above the viewport top
+// Show the fixed comment bar as soon as the comments section reaches the viewport
+// (either scrolled into view, or already scrolled past).
 useEffect(()=>{
-  const el=postRef.current;
+  const el=commentsRef.current;
   if(!el)return;
   const obs=new IntersectionObserver(([e])=>{
-    // isIntersecting=false AND top<0 means it left through the top
-    setBarVisible(!e.isIntersecting&&e.boundingClientRect.top<0);
+    // true when comments are visible OR have already scrolled above the top
+    setBarVisible(e.isIntersecting||e.boundingClientRect.top<0);
   },{threshold:0});
   obs.observe(el);
   return()=>obs.disconnect();
@@ -185,10 +186,10 @@ function CRow({c,isReply=false,parentId=null}){return(
 
 return <div style={{animation:"en .3s ease both",paddingBottom:barVisible?72:16}}>
 <button className="tb" onClick={onBack} style={{fontFamily:T.ui,fontSize:14,color:T.tx3,background:"none",border:"none",cursor:"pointer",marginBottom:14,minHeight:40,display:"flex",alignItems:"center",gap:6}}>← Back</button>
-{/* Full post — observed to detect when it leaves the top of the viewport */}
-<div ref={postRef}><FC T={T} item={item} onToggle={localToggle} onBook={onBook} onUser={onUser}/></div>
-{/* Comments section */}
-<div style={{marginTop:16,paddingTop:16,borderTop:`1px solid ${T.bdr}`}}>
+{/* Full post */}
+<FC T={T} item={item} onToggle={localToggle} onBook={onBook} onUser={onUser}/>
+{/* Comments section — observed: bar appears as soon as this is in view */}
+<div ref={commentsRef} style={{marginTop:16,paddingTop:16,borderTop:`1px solid ${T.bdr}`}}>
 <div style={{fontFamily:T.ui,fontSize:13,fontWeight:700,color:T.tx,marginBottom:16}}>
   {item.comments===0?"No comments yet":`${item.comments} Comment${item.comments!==1?"s":""}`}
 </div>
