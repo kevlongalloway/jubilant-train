@@ -8,7 +8,10 @@ import * as API from "./api.js";
 // ═══════════════════════════════════════════════════════════════
 
 const THEMES={twilight:{id:"twilight",name:"Twilight Ink",icon:"☽",bg:"#111620",bg2:"#171D2A",bg3:"#1D2535",sf:"#151B28",bdr:"rgba(196,162,101,0.06)",bdrA:"rgba(196,162,101,0.16)",gold:"#C4A265",gs:"rgba(196,162,101,0.1)",acc:"#C06A30",as:"rgba(192,106,48,0.08)",tx:"#E4DED2",tx2:"#B8B0A2",tx3:"#7A7468",tx4:"#4E4A42",gn:"#6A9A60",rd:"#C45A4A",bl:"#5A8AB4",pl:"#9A70A0",tl:"#4EA8A0",hd:"'Cormorant Garamond',Georgia,serif",bd:"'Source Serif 4',Georgia,serif",ui:"'Outfit',system-ui,sans-serif",mn:"'JetBrains Mono',monospace",sh:"0 2px 8px rgba(0,0,0,.35)",shL:"0 8px 32px rgba(0,0,0,.45)"},parchment:{id:"parchment",name:"Warm Parchment",icon:"☀",bg:"#F4F0E6",bg2:"#ECE8DD",bg3:"#E2DDD1",sf:"#FFFDF5",bdr:"rgba(140,120,80,0.1)",bdrA:"rgba(140,120,80,0.24)",gold:"#A87A0A",gs:"rgba(168,122,10,0.07)",acc:"#B85A32",as:"rgba(184,90,50,0.06)",tx:"#2A2218",tx2:"#4A4030",tx3:"#8A7E6A",tx4:"#B8AD98",gn:"#5A7A4A",rd:"#A0422E",bl:"#4A6A8A",pl:"#7A5070",tl:"#3A8A7A",hd:"'Cormorant Garamond',Georgia,serif",bd:"'Source Serif 4',Georgia,serif",ui:"'Outfit',system-ui,sans-serif",mn:"'JetBrains Mono',monospace",sh:"0 1px 4px rgba(80,60,20,.05)",shL:"0 6px 24px rgba(80,60,20,.06)"},stone:{id:"stone",name:"Stone & Sage",icon:"◑",bg:"#E6E4DE",bg2:"#DCDAD2",bg3:"#D0CEC4",sf:"#F0EEE8",bdr:"rgba(100,96,82,0.1)",bdrA:"rgba(100,96,82,0.22)",gold:"#7A6E42",gs:"rgba(122,110,66,0.07)",acc:"#A85A3A",as:"rgba(168,90,58,0.06)",tx:"#28261E",tx2:"#44423A",tx3:"#78756C",tx4:"#A09C92",gn:"#4A7A56",rd:"#A0493A",bl:"#506A80",pl:"#7A5A6A",tl:"#3A8878",hd:"'Cormorant Garamond',Georgia,serif",bd:"'Source Serif 4',Georgia,serif",ui:"'Outfit',system-ui,sans-serif",mn:"'JetBrains Mono',monospace",sh:"0 1px 4px rgba(60,56,40,.05)",shL:"0 6px 24px rgba(60,56,40,.06)"},editorial:{id:"editorial",name:"Editorial",icon:"■",bg:"#F9F9F7",bg2:"#F0EFEC",bg3:"#E4E3DE",sf:"#FFFFFF",bdr:"rgba(0,0,0,0.05)",bdrA:"rgba(0,0,0,0.12)",gold:"#1A1A18",gs:"rgba(0,0,0,0.03)",acc:"#C44A20",as:"rgba(196,74,32,0.05)",tx:"#1A1A18",tx2:"#3A3A36",tx3:"#7A7A74",tx4:"#AAAAAA",gn:"#2A6A4A",rd:"#C44A20",bl:"#2A4A7A",pl:"#6A3A6A",tl:"#2A7A6A",hd:"'Cormorant Garamond',Georgia,serif",bd:"'Source Serif 4',Georgia,serif",ui:"'Outfit',system-ui,sans-serif",mn:"'JetBrains Mono',monospace",sh:"0 1px 3px rgba(0,0,0,.03)",shL:"0 4px 16px rgba(0,0,0,.04)"}};
-function useTheme(){const[tid,setTid]=useState("twilight");return{T:THEMES[tid],tid,setTid};}
+function useTheme(){
+const[tid,setTid]=useState(()=>localStorage.getItem('precis_theme')||"twilight");
+const setAndSave=(id)=>{setTid(id);localStorage.setItem('precis_theme',id);};
+return{T:THEMES[tid],tid,setTid:setAndSave};}
 
 const TIERS=[{name:"Fresh Ink",min:0,c:"#8A8474"},{name:"Wet Ink",min:25,c:"#7AAAB8"},{name:"Set Ink",min:100,c:"#7AAA80"},{name:"Deep Ink",min:500,c:"#C4A265"},{name:"Indelible",min:2000,c:"#C06A30"}];
 const gT=n=>{for(let i=TIERS.length-1;i>=0;i--)if(n>=TIERS[i].min)return TIERS[i];return TIERS[0];};
@@ -290,17 +293,56 @@ function ChallengesScreen({T}){return <div style={{animation:"en .35s ease both"
 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontFamily:T.ui,fontSize:10,color:T.tx4}}>Ends in {ch.endsIn}</span>{ch.joined?<span style={{fontFamily:T.ui,fontSize:10,fontWeight:700,color:T.gn}}>✓ Joined</span>:<button className="tb" style={{padding:"7px 14px",borderRadius:8,border:"none",background:T.acc,color:"#fff",fontFamily:T.ui,fontSize:11,fontWeight:700,cursor:"pointer",minHeight:36}}>Join</button>}</div></Card>)}</div></Sec></div>;}
 
 // ─── SETTINGS ────────────────────────────────────────────────
-function SettingsScreen({T,tid,setTid}){
-const[notifs,setN]=useState({likes:true,comments:true,follows:true,clubs:true,challenges:true});
-const[priv,setP]=useState({showReading:true,showLocation:false,publicProfile:true});
+function SettingsScreen({T,tid,setTid,apiUser,setApiUser,onSignOut}){
+// Notifications — persisted to localStorage
+const[notifs,setN]=useState(()=>{try{return JSON.parse(localStorage.getItem('precis_notifs'))||{likes:true,comments:true,follows:true,clubs:true,challenges:true};}catch{return{likes:true,comments:true,follows:true,clubs:true,challenges:true};}});
+const toggleNotif=(k)=>{const next={...notifs,[k]:!notifs[k]};setN(next);localStorage.setItem('precis_notifs',JSON.stringify(next));};
+// Privacy — persisted to localStorage
+const[priv,setP]=useState(()=>{try{return JSON.parse(localStorage.getItem('precis_priv'))||{showReading:true,showLocation:false,publicProfile:true};}catch{return{showReading:true,showLocation:false,publicProfile:true};}});
+const togglePriv=(k)=>{const next={...priv,[k]:!priv[k]};setP(next);localStorage.setItem('precis_priv',JSON.stringify(next));};
+// Edit profile state
+const[editing,setEditing]=useState(false);const[editName,setEditName]=useState(apiUser?.username||"");const[editBio,setEditBio]=useState(apiUser?.bio||"");const[saving,setSaving]=useState(false);const[saveErr,setSaveErr]=useState(null);
+const saveEdit=async()=>{if(saving||!editName.trim())return;setSaving(true);setSaveErr(null);try{const updated=await API.updateMe({username:editName.trim(),bio:editBio.trim()});const fresh={...apiUser,...updated};API.setStoredUser(fresh);setApiUser(fresh);setEditing(false);}catch(e){setSaveErr(e.message||"Failed to save.");}finally{setSaving(false);};};
 function Tog({on,onToggle,label}){return <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 0",borderBottom:`1px solid ${T.bdr}`}}><span style={{fontFamily:T.ui,fontSize:13,color:T.tx}}>{label}</span><button className="tb" onClick={onToggle} style={{width:44,height:26,borderRadius:13,background:on?T.acc:`${T.tx4}30`,border:"none",cursor:"pointer",position:"relative",transition:"background .2s"}}><div style={{width:20,height:20,borderRadius:"50%",background:"#fff",position:"absolute",top:3,left:on?21:3,transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.2)"}}/></button></div>;}
+const initials=(apiUser?.username||"?").slice(0,2).toUpperCase();
 return <div style={{animation:"en .35s ease both"}}>
 <Sec T={T} title="Settings">
-<Card T={T} pad="16px" mb={14}><div style={{fontFamily:T.ui,fontSize:10,fontWeight:700,color:T.tx4,letterSpacing:".08em",textTransform:"uppercase",marginBottom:8}}>Account</div><div style={{display:"flex",alignItems:"center",gap:10,padding:"12px 0",borderBottom:`1px solid ${T.bdr}`}}><Av T={T} i={ME.in} ink={ME.ink} s={40}/><div style={{flex:1}}><div style={{fontFamily:T.ui,fontSize:13,fontWeight:600,color:T.tx}}>{ME.name}</div><div style={{fontFamily:T.ui,fontSize:11,color:T.tx4}}>{ME.h}</div></div><button className="tb" style={{fontFamily:T.ui,fontSize:11,color:T.acc,background:"none",border:"none",cursor:"pointer"}}>Edit</button></div></Card>
+{/* Account */}
+<Card T={T} pad="16px" mb={14}>
+<div style={{fontFamily:T.ui,fontSize:10,fontWeight:700,color:T.tx4,letterSpacing:".08em",textTransform:"uppercase",marginBottom:8}}>Account</div>
+{editing?(
+<div>
+  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}><Av T={T} i={initials} ink={apiUser?.ink||0} s={40}/><div style={{fontFamily:T.ui,fontSize:11,color:T.tx4}}>{apiUser?.handle}</div></div>
+  <input value={editName} onChange={e=>setEditName(e.target.value)} placeholder="Display name" maxLength={40} style={{width:"100%",padding:"10px 12px",borderRadius:8,background:T.bg2,border:`1px solid ${T.bdrA}`,fontFamily:T.ui,fontSize:13,color:T.tx,outline:"none",marginBottom:10,boxSizing:"border-box"}}/>
+  <textarea value={editBio} onChange={e=>setEditBio(e.target.value)} placeholder="Bio (optional)" maxLength={200} rows={3} style={{width:"100%",padding:"10px 12px",borderRadius:8,background:T.bg2,border:`1px solid ${T.bdrA}`,fontFamily:T.ui,fontSize:13,color:T.tx,outline:"none",resize:"none",marginBottom:10,boxSizing:"border-box"}}/>
+  {saveErr&&<div style={{fontFamily:T.ui,fontSize:11,color:T.rd,marginBottom:8}}>{saveErr}</div>}
+  <div style={{display:"flex",gap:8}}>
+    <button className="tb" onClick={saveEdit} disabled={saving||!editName.trim()} style={{flex:1,padding:"10px 0",borderRadius:8,border:"none",background:editName.trim()&&!saving?T.acc:`${T.tx4}20`,color:editName.trim()&&!saving?"#fff":T.tx4,fontFamily:T.ui,fontSize:12,fontWeight:700,cursor:"pointer",minHeight:40}}>{saving?"Saving…":"Save changes"}</button>
+    <button className="tb" onClick={()=>{setEditing(false);setSaveErr(null);}} style={{padding:"10px 16px",borderRadius:8,border:`1px solid ${T.bdr}`,background:"none",color:T.tx3,fontFamily:T.ui,fontSize:12,cursor:"pointer",minHeight:40}}>Cancel</button>
+  </div>
+</div>
+):(
+<div style={{display:"flex",alignItems:"center",gap:10,padding:"4px 0"}}>
+  <Av T={T} i={initials} ink={apiUser?.ink||0} s={40}/>
+  <div style={{flex:1}}>
+    <div style={{fontFamily:T.ui,fontSize:13,fontWeight:600,color:T.tx}}>{apiUser?.username||"—"}</div>
+    <div style={{fontFamily:T.ui,fontSize:11,color:T.tx4}}>{apiUser?.handle||""}</div>
+    {apiUser?.bio&&<div style={{fontFamily:T.bd,fontSize:11,color:T.tx3,marginTop:2,fontStyle:"italic"}}>{apiUser.bio}</div>}
+  </div>
+  <button className="tb" onClick={()=>{setEditName(apiUser?.username||"");setEditBio(apiUser?.bio||"");setEditing(true);}} style={{fontFamily:T.ui,fontSize:11,color:T.acc,background:"none",border:"none",cursor:"pointer",minHeight:36,padding:"0 4px"}}>Edit</button>
+</div>
+)}
+</Card>
+{/* Theme */}
 <Card T={T} pad="16px" mb={14}><div style={{fontFamily:T.ui,fontSize:10,fontWeight:700,color:T.tx4,letterSpacing:".08em",textTransform:"uppercase",marginBottom:8}}>Theme</div><div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{Object.values(THEMES).map(t=>{const a=t.id===tid;return <button key={t.id} className="tb" onClick={()=>setTid(t.id)} style={{display:"flex",alignItems:"center",gap:8,padding:"10px 14px",borderRadius:10,border:`1px solid ${a?`${t.acc}30`:T.bdr}`,background:a?`${t.acc}08`:"transparent",cursor:"pointer",minHeight:44}}><div style={{display:"flex",gap:3}}>{[t.bg,t.sf,t.tx,t.acc].map((c,i)=><div key={i} style={{width:12,height:12,borderRadius:"50%",background:c,border:"1px solid rgba(128,128,128,.12)"}}/>)}</div><span style={{fontFamily:T.ui,fontSize:12,fontWeight:a?700:500,color:a?t.acc:T.tx2}}>{t.name}</span></button>})}</div></Card>
-<Card T={T} pad="16px" mb={14}><div style={{fontFamily:T.ui,fontSize:10,fontWeight:700,color:T.tx4,letterSpacing:".08em",textTransform:"uppercase",marginBottom:4}}>Notifications</div>{Object.entries(notifs).map(([k,v])=><Tog key={k} on={v} onToggle={()=>setN(p=>({...p,[k]:!p[k]}))} label={k.charAt(0).toUpperCase()+k.slice(1)}/>)}</Card>
-<Card T={T} pad="16px" mb={14}><div style={{fontFamily:T.ui,fontSize:10,fontWeight:700,color:T.tx4,letterSpacing:".08em",textTransform:"uppercase",marginBottom:4}}>Privacy</div>{Object.entries(priv).map(([k,v])=><Tog key={k} on={v} onToggle={()=>setP(p=>({...p,[k]:!p[k]}))} label={k==="showReading"?"Show currently reading":k==="showLocation"?"Show on Reader Map":"Public profile"}/>)}</Card>
-<Card T={T} pad="16px"><div style={{fontFamily:T.ui,fontSize:10,fontWeight:700,color:T.tx4,letterSpacing:".08em",textTransform:"uppercase",marginBottom:8}}>Data</div><div style={{display:"flex",flexDirection:"column",gap:8}}><button className="tb" style={{padding:"10px 14px",borderRadius:8,border:`1px solid ${T.bdr}`,background:"transparent",fontFamily:T.ui,fontSize:12,color:T.tx3,cursor:"pointer",textAlign:"left",minHeight:44}}>Import from Goodreads / StoryGraph</button><button className="tb" style={{padding:"10px 14px",borderRadius:8,border:`1px solid ${T.bdr}`,background:"transparent",fontFamily:T.ui,fontSize:12,color:T.tx3,cursor:"pointer",textAlign:"left",minHeight:44}}>Export my data</button><button className="tb" style={{padding:"10px 14px",borderRadius:8,border:`1px solid ${T.rd}15`,background:`${T.rd}04`,fontFamily:T.ui,fontSize:12,color:T.rd,cursor:"pointer",textAlign:"left",minHeight:44}}>Delete account</button></div></Card>
+{/* Notifications */}
+<Card T={T} pad="16px" mb={14}><div style={{fontFamily:T.ui,fontSize:10,fontWeight:700,color:T.tx4,letterSpacing:".08em",textTransform:"uppercase",marginBottom:4}}>Notifications</div>{Object.entries(notifs).map(([k,v])=><Tog key={k} on={v} onToggle={()=>toggleNotif(k)} label={k.charAt(0).toUpperCase()+k.slice(1)}/>)}</Card>
+{/* Privacy */}
+<Card T={T} pad="16px" mb={14}><div style={{fontFamily:T.ui,fontSize:10,fontWeight:700,color:T.tx4,letterSpacing:".08em",textTransform:"uppercase",marginBottom:4}}>Privacy</div>{Object.entries(priv).map(([k,v])=><Tog key={k} on={v} onToggle={()=>togglePriv(k)} label={k==="showReading"?"Show currently reading":k==="showLocation"?"Show on Reader Map":"Public profile"}/>)}</Card>
+{/* Data */}
+<Card T={T} pad="16px" mb={14}><div style={{fontFamily:T.ui,fontSize:10,fontWeight:700,color:T.tx4,letterSpacing:".08em",textTransform:"uppercase",marginBottom:8}}>Data</div><div style={{display:"flex",flexDirection:"column",gap:8}}><button className="tb" style={{padding:"10px 14px",borderRadius:8,border:`1px solid ${T.bdr}`,background:"transparent",fontFamily:T.ui,fontSize:12,color:T.tx3,cursor:"pointer",textAlign:"left",minHeight:44}}>Import from Goodreads / StoryGraph</button><button className="tb" style={{padding:"10px 14px",borderRadius:8,border:`1px solid ${T.bdr}`,background:"transparent",fontFamily:T.ui,fontSize:12,color:T.tx3,cursor:"pointer",textAlign:"left",minHeight:44}}>Export my data</button><button className="tb" style={{padding:"10px 14px",borderRadius:8,border:`1px solid ${T.rd}15`,background:`${T.rd}04`,fontFamily:T.ui,fontSize:12,color:T.rd,cursor:"pointer",textAlign:"left",minHeight:44}}>Delete account</button></div></Card>
+{/* Sign out */}
+<Card T={T} pad="16px"><button className="tb" onClick={onSignOut} style={{width:"100%",padding:"12px 0",borderRadius:8,border:`1px solid ${T.bdr}`,background:"none",fontFamily:T.ui,fontSize:13,fontWeight:600,color:T.tx3,cursor:"pointer",minHeight:44}}>Sign out</button></Card>
 </Sec></div>;}
 
 // ─── COMPOSE ─────────────────────────────────────────────────
@@ -564,7 +606,7 @@ if(subView==="messages")return <MessagesScreen T={T}/>;
 if(subView==="notifications")return <NotifsScreen T={T}/>;
 if(subView==="clubs")return <ClubsScreen T={T}/>;
 if(subView==="challenges")return <ChallengesScreen T={T}/>;
-if(subView==="settings")return <SettingsScreen T={T} tid={tid} setTid={setTid}/>;
+if(subView==="settings")return <SettingsScreen T={T} tid={tid} setTid={setTid} apiUser={apiUser} setApiUser={setApiUser} onSignOut={()=>{API.clearToken();setApiUser(null);setSV(null);}}/>;
 if(tab==="feed")return <FeedScreen T={T} feed={feed} onToggle={onToggle} onBook={onBook} onUser={onUser} searchQ={searchQ} loadMore={()=>loadFeed(feedCursor,true)} onRefresh={()=>loadFeed(null,false)} feedLoading={feedLoading} hasMoreFeed={hasMoreFeed}/>;
 if(tab==="explore")return <ExploreScreen T={T} onBook={onBook}/>;
 if(tab==="shelf")return <ShelfScreen T={T} onBook={onBook}/>;

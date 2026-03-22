@@ -89,6 +89,13 @@ export async function getMe() {
   return apiFetch('/auth/me');
 }
 
+export async function updateMe({ username, bio }) {
+  return apiFetch('/auth/me', {
+    method: 'PATCH',
+    body: JSON.stringify({ username, bio }),
+  });
+}
+
 export async function getUser(userId) {
   return apiFetch(`/users/${userId}`);
 }

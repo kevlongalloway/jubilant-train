@@ -92,4 +92,23 @@ router.get('/me', requireAuth, async (req, res, next) => {
   }
 });
 
+// PATCH /api/auth/me — update own profile (username / bio)
+router.patch('/me', requireAuth, async (req, res, next) => {
+  try {
+    const { username, bio } = req.body;
+    const data = {};
+    if (typeof username === 'string' && username.trim()) data.username = username.trim().slice(0, 40);
+    if (typeof bio === 'string') data.bio = bio.trim().slice(0, 200);
+
+    const user = await prisma.user.update({
+      where: { id: req.user.id },
+      data,
+      select: { id: true, username: true, handle: true, email: true, lens: true, ink: true, bio: true },
+    });
+    res.json(user);
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;
