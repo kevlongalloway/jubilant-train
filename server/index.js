@@ -18,11 +18,19 @@ const { runPreferenceBuilder } = require('./jobs/preferenceBuilder');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// ─── Middleware ───────────────────────────────────────────────
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// CORS — allow same origin (frontend served from here) and local dev
+// ─── Static Frontend (production) ────────────────────────────
+// Must be registered BEFORE cors() middleware.
+// Vite's build adds `crossorigin` to <script> tags, which forces CORS mode —
+// the browser sends an Origin header even for same-origin asset requests.
+// If cors() runs first and the production host isn't in allowedOrigins, Express
+// returns a 500, so Safari receives JSON instead of JS and shows "Script error."
+const distPath = path.join(__dirname, '..', 'dist');
+app.use(express.static(distPath));
+
+// ─── CORS (API routes only) ───────────────────────────────────
 const allowedOrigins = [
   'http://localhost:5173', // Vite dev server
   'http://localhost:3001',
@@ -31,7 +39,7 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: (origin, cb) => {
-    // Allow requests with no origin (mobile apps, Postman, etc.)
+    // Allow requests with no origin (mobile apps, Postman, curl, etc.)
     if (!origin) return cb(null, true);
     if (allowedOrigins.includes(origin)) return cb(null, true);
     cb(new Error('Not allowed by CORS'));
@@ -51,18 +59,12 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// ─── Static Frontend (production) ────────────────────────────
-// The React app is built into ../dist by `npm run build` in root
-const distPath = path.join(__dirname, '..', 'dist');
-app.use(express.static(distPath));
-
 // SPA fallback — serve index.html for all non-API routes
 app.get('*', (req, res) => {
   res.sendFile(path.join(distPath, 'index.html'));
 });
 
 // ─── Background Jobs ──────────────────────────────────────────
-// Run preference builder every hour to keep user vectors fresh
 cron.schedule('0 * * * *', async () => {
   console.log('[cron] Running preference builder...');
   try {
