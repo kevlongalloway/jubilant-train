@@ -89,6 +89,10 @@ export async function getMe() {
   return apiFetch('/auth/me');
 }
 
+export async function getUser(userId) {
+  return apiFetch(`/users/${userId}`);
+}
+
 // ─── Feed ─────────────────────────────────────────────────────
 
 /**

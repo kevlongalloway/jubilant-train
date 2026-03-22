@@ -200,20 +200,20 @@ return <div style={{animation:"en .35s ease both"}}>
 </div>;}
 
 // ─── PROFILE ─────────────────────────────────────────────────
-function ProfileScreen({T,user=ME}){
-const[tab,setTab]=useState("posts");const[following,setFollowing]=useState(false);const isMe=user.id===ME.id;const tier=gT(user.ink);const lens=LN[user.lens];
+function ProfileScreen({T,user=ME,apiUser}){
+const[tab,setTab]=useState("posts");const[following,setFollowing]=useState(false);const isMe=user.id===ME.id;const tier=gT(user.ink);const lens=LN[user.lens];const[stats,setStats]=useState(null);useEffect(()=>{const uid=isMe&&apiUser?apiUser.id:user.id;if(uid&&uid!=="me")API.getUser(uid).then(setStats).catch(()=>{});},[isMe?apiUser?.id:user.id]);
 const userPosts=FI.filter(f=>f.user.id===user.id);
 return <div style={{animation:"en .35s ease both"}}>
 <Card T={T} pad="24px 16px" mb={16}><div style={{display:"flex",alignItems:"center",gap:14,marginBottom:16}}><Av T={T} i={user.in} ink={user.ink} s={56}/><div style={{flex:1}}><div style={{fontFamily:T.hd,fontSize:22,fontWeight:700,color:T.tx}}>{user.name}</div><div style={{fontFamily:T.ui,fontSize:12,color:T.tx4,marginTop:2}}>{user.h}</div><div style={{display:"flex",gap:6,marginTop:6}}><IB T={T} ink={user.ink}/><LB T={T} lens={user.lens}/></div></div>
 {isMe?<button className="tb" style={{padding:"8px 16px",borderRadius:8,border:`1px solid ${T.bdr}`,background:"transparent",fontFamily:T.ui,fontSize:11,fontWeight:600,color:T.tx3,cursor:"pointer",minHeight:40}}>Edit</button>:<button className="tb" onClick={()=>setFollowing(f=>!f)} style={{padding:"8px 16px",borderRadius:8,border:`1px solid ${following?T.bdr:T.acc}`,background:following?"transparent":T.acc,fontFamily:T.ui,fontSize:11,fontWeight:700,color:following?T.tx3:"#fff",cursor:"pointer",minHeight:40}}>{following?"Following":"Follow"}</button>}
 </div>
 {user.bio&&<div style={{fontFamily:T.bd,fontSize:13,color:T.tx2,fontStyle:"italic",lineHeight:1.6,marginBottom:16}}>{user.bio}</div>}
-<div style={{display:"flex",gap:20,fontFamily:T.ui,fontSize:12}}><div><strong style={{color:T.tx,fontSize:16}}>{user.posts||userPosts.length}</strong><div style={{color:T.tx4,fontSize:10}}>Posts</div></div><div><strong style={{color:T.tx,fontSize:16}}>{user.followers||0}</strong><div style={{color:T.tx4,fontSize:10}}>Followers</div></div><div><strong style={{color:T.tx,fontSize:16}}>{user.following||0}</strong><div style={{color:T.tx4,fontSize:10}}>Following</div></div><div><strong style={{color:T.tx,fontSize:16}}>{user.booksRead||0}</strong><div style={{color:T.tx4,fontSize:10}}>Books Read</div></div></div>
+<div style={{display:"flex",gap:20,fontFamily:T.ui,fontSize:12}}><div><strong style={{color:T.tx,fontSize:16}}>{stats?._count?.posts??user.posts??userPosts.length}</strong><div style={{color:T.tx4,fontSize:10}}>Posts</div></div><div><strong style={{color:T.tx,fontSize:16}}>{stats?._count?.followers??user.followers??0}</strong><div style={{color:T.tx4,fontSize:10}}>Followers</div></div><div><strong style={{color:T.tx,fontSize:16}}>{stats?._count?.following??user.following??0}</strong><div style={{color:T.tx4,fontSize:10}}>Following</div></div><div><strong style={{color:T.tx,fontSize:16}}>{stats?.booksRead??user.booksRead??0}</strong><div style={{color:T.tx4,fontSize:10}}>Books Read</div></div></div>
 <div style={{marginTop:16,padding:"12px 14px",borderRadius:10,background:`${tier.c}08`,border:`1px solid ${tier.c}15`}}><div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}><div><div style={{fontFamily:T.ui,fontSize:10,fontWeight:700,color:tier.c,letterSpacing:".06em",textTransform:"uppercase"}}>{tier.name}</div><div style={{fontFamily:T.mn,fontSize:20,fontWeight:700,color:tier.c}}>{fN(user.ink)}</div></div><div style={{width:80,height:4,borderRadius:2,background:`${tier.c}15`}}><div style={{width:`${Math.min((user.ink/(TIERS[TIERS.findIndex(t=>t===tier)+1]?.min||2000))*100,100)}%`,height:"100%",borderRadius:2,background:tier.c}}/></div></div></div></Card>
 <div style={{display:"flex",gap:0,marginBottom:14,borderBottom:`1px solid ${T.bdr}`}}>{[{id:"posts",l:"Posts"},{id:"shelves",l:"Shelves"},{id:"about",l:"About"}].map(t=><button key={t.id} className="tb" onClick={()=>setTab(t.id)} style={{padding:"10px 16px",border:"none",cursor:"pointer",fontFamily:T.ui,fontSize:12,fontWeight:tab===t.id?700:500,background:"transparent",color:tab===t.id?T.tx:T.tx3,borderBottom:tab===t.id?`2px solid ${T.acc}`:"2px solid transparent"}}>{t.l}</button>)}</div>
 {tab==="posts"&&<div style={{display:"flex",flexDirection:"column",gap:10}}>{userPosts.length===0?<Empty T={T} icon="✎" title="No posts yet" sub={isMe?"Your first post earns +10 Ink.":"Nothing posted yet."}/>:userPosts.map((item,i)=><Card key={item.id} T={T} pad="14px 16px"><div style={{fontFamily:T.hd,fontSize:15,fontWeight:600,color:T.tx,marginBottom:4}}>{item.title||item.bookRef?.title}</div><div style={{fontFamily:T.bd,fontSize:12,color:T.tx3,lineHeight:1.5}}>{item.text.slice(0,120)}…</div><div style={{fontFamily:T.ui,fontSize:10,color:T.tx4,marginTop:6}}>♡ {item.likes} · <MessageCircle size={9} style={{verticalAlign:"middle"}}/> {item.comments} · ◆ {item.shelved}</div></Card>)}</div>}
 {tab==="shelves"&&<div style={{display:"flex",flexDirection:"column",gap:8}}>{SHELF_ITEMS.slice(0,3).map(s=><Card key={s.id} T={T} pad="12px 14px"><div style={{fontFamily:T.hd,fontSize:14,fontWeight:600,color:T.tx}}>{s.title||s.book?.title}</div><div style={{fontFamily:T.ui,fontSize:10,color:T.tx4,marginTop:2}}>by {s.authorName} · Shelved {s.shelvedAt}</div></Card>)}</div>}
-{tab==="about"&&<Card T={T} pad="16px"><div style={{fontFamily:T.ui,fontSize:10,fontWeight:700,color:T.tx4,letterSpacing:".08em",textTransform:"uppercase",marginBottom:10}}>Reader Identity</div><div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}><IB T={T} ink={user.ink}/><LB T={T} lens={user.lens}/></div><div style={{fontFamily:T.ui,fontSize:10,fontWeight:700,color:T.tx4,letterSpacing:".08em",textTransform:"uppercase",marginBottom:8}}>Reading Stats</div><div style={{fontFamily:T.bd,fontSize:13,color:T.tx2,lineHeight:1.8}}>{user.booksRead||0} books read · Member since Jan 2026</div></Card>}
+{tab==="about"&&<Card T={T} pad="16px"><div style={{fontFamily:T.ui,fontSize:10,fontWeight:700,color:T.tx4,letterSpacing:".08em",textTransform:"uppercase",marginBottom:10}}>Reader Identity</div><div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}><IB T={T} ink={user.ink}/><LB T={T} lens={user.lens}/></div><div style={{fontFamily:T.ui,fontSize:10,fontWeight:700,color:T.tx4,letterSpacing:".08em",textTransform:"uppercase",marginBottom:8}}>Reading Stats</div><div style={{fontFamily:T.bd,fontSize:13,color:T.tx2,lineHeight:1.8}}>{stats?.booksRead??user.booksRead??0} books read · Member since Jan 2026</div></Card>}
 </div>;}
 
 // ─── MESSAGES ────────────────────────────────────────────────
@@ -502,8 +502,8 @@ const unread=NOTIFS.filter(n=>!n.read).length;const msgUnread=CONVOS.reduce((a,c
 function renderMain(){
 if(activeBook){const bd=BOOK_DATA[activeBook.title]||activeBook;return <BookDetailScreen T={T} book={bd} onClose={()=>setAB(null)} onRead={()=>setRB(activeBook)} onReview={onReview}/>;}
 if(subView==="compose")return <ComposeScreen T={T} onClose={()=>{setSV(null);setCI({type:null,book:null});}} initialType={composeInit.type} initialBook={composeInit.book}/>;
-if(subView==="profile")return <ProfileScreen T={T}/>;
-if(subView==="user"&&viewedUser)return <ProfileScreen T={T} user={viewedUser}/>;
+if(subView==="profile")return <ProfileScreen T={T} apiUser={apiUser}/>;
+if(subView==="user"&&viewedUser)return <ProfileScreen T={T} user={viewedUser} apiUser={apiUser}/>;
 if(subView==="messages")return <MessagesScreen T={T}/>;
 if(subView==="notifications")return <NotifsScreen T={T}/>;
 if(subView==="clubs")return <ClubsScreen T={T}/>;
@@ -512,7 +512,7 @@ if(subView==="settings")return <SettingsScreen T={T} tid={tid} setTid={setTid}/>
 if(tab==="feed")return <FeedScreen T={T} feed={feed} onToggle={onToggle} onBook={onBook} onUser={onUser} searchQ={searchQ} loadMore={()=>loadFeed(feedCursor,true)} feedLoading={feedLoading} hasMoreFeed={hasMoreFeed}/>;
 if(tab==="explore")return <ExploreScreen T={T} onBook={onBook}/>;
 if(tab==="shelf")return <ShelfScreen T={T} onBook={onBook}/>;
-if(tab==="profile")return <ProfileScreen T={T}/>;
+if(tab==="profile")return <ProfileScreen T={T} apiUser={apiUser}/>;
 return null;}
 
 // Show auth screen when not logged in (optional — shows mock data without auth)
