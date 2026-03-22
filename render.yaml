@@ -34,7 +34,8 @@ services:
       cd server &&
       npm install &&
       npx prisma generate &&
-      npx prisma migrate deploy
+      npx prisma migrate deploy &&
+      node prisma/seed.js
 
     # Start Express server (serves both API and static frontend)
     startCommand: node server/index.js
