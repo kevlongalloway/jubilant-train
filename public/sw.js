@@ -1,17 +1,22 @@
-// Cache version — bump this when you need to invalidate all cached assets.
-const CACHE = 'precis-v2';
+// Bump version on every deploy so stale caches are cleared immediately.
+const CACHE = 'precis-v3';
 
 self.addEventListener('install', e => {
-  // Activate immediately without waiting for old tabs to close.
   e.waitUntil(self.skipWaiting());
 });
 
 self.addEventListener('activate', e => {
-  // Delete every cache except the current version.
   e.waitUntil(
     caches.keys()
       .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
+      .then(() => {
+        // Tell every open tab to reload so it picks up fresh HTML + assets.
+        // Without this, tabs controlled by the old SW keep their stale index.html
+        // which references JS bundle filenames that no longer exist after a deploy.
+        return self.clients.matchAll({ includeUncontrolled: true, type: 'window' })
+          .then(clients => clients.forEach(c => c.postMessage({ type: 'SW_RELOAD' })));
+      })
   );
 });
 
@@ -20,18 +25,16 @@ self.addEventListener('fetch', e => {
 
   const url = new URL(e.request.url);
 
-  // Never cache index.html or API calls — always go to the network.
-  // This prevents a stale index.html from referencing a JS bundle that
-  // no longer exists after a new deploy (which would cause a blank screen).
+  // Never cache HTML or API — always fresh from network.
   if (
     url.pathname === '/' ||
-    url.pathname === '/index.html' ||
+    url.pathname.endsWith('.html') ||
     url.pathname.startsWith('/api/')
   ) {
     return;
   }
 
-  // Cache-first for all other static assets (hashed JS/CSS bundles, icons, etc.)
+  // Cache-first for hashed static assets (JS, CSS, icons, etc.)
   e.respondWith(
     caches.match(e.request).then(cached => {
       if (cached) return cached;
