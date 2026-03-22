@@ -50,6 +50,35 @@ const BOOK_DATA={
 // ─── CSS ─────────────────────────────────────────────────────
 const gc=T=>`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,500;1,8..60,400&family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html,body{background:${T.bg}!important;overflow-x:hidden;-webkit-tap-highlight-color:transparent;touch-action:pan-x pan-y;overscroll-behavior:none;height:100%}body{touch-action:pan-x pan-y}::selection{background:${T.gold}30;color:${T.tx}}::-webkit-scrollbar{width:0;height:0}@keyframes en{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}@keyframes fi{from{opacity:0}to{opacity:1}}@keyframes si{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}@keyframes po{0%{transform:scale(1)}50%{transform:scale(1.25)}100%{transform:scale(1)}}@keyframes sk{0%{background-position:-400px 0}100%{background-position:calc(400px + 100%) 0}}@keyframes spin{to{transform:rotate(360deg)}}.tb{-webkit-tap-highlight-color:transparent;touch-action:manipulation}.tb:active{opacity:.7;transform:scale(.97)}.cl{transition:border-color .2s,box-shadow .15s}@media(min-width:768px){.mh{display:none!important}.dh{display:flex!important}.bb{display:none!important}.fw{padding-bottom:0!important;max-width:680px;margin:0 auto}.fs{display:grid!important;grid-template-columns:1fr 300px;gap:24px;max-width:1020px;margin:0 auto;align-items:start}.sd{display:flex!important}.cl:hover{border-color:${T.bdrA};box-shadow:${T.sh};transform:translateY(-1px)}}@media(max-width:767px){.dh{display:none!important}.sd{display:none!important}.fs{display:block!important}}@media(max-width:767px){.fw{padding-bottom:calc(60px + env(safe-area-inset-bottom))!important}}@media(display-mode:standalone){.mh{padding-top:env(safe-area-inset-top)!important;height:calc(52px + env(safe-area-inset-top))!important}}`;
 
+// ─── GOOGLE BOOKS SEARCH ─────────────────────────────────────
+// Phase 1: Google Books API (free) → Amazon link via ISBN-10 (=ASIN for most books)
+async function searchGoogleBooks(q,max=8){
+  try{
+    const r=await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=${max}&langRestrict=en&printType=books`);
+    if(!r.ok)return[];
+    const d=await r.json();
+    return(d.items||[]).map(v=>{
+      const info=v.volumeInfo;
+      const isbn10=info.industryIdentifiers?.find(i=>i.type==="ISBN_10")?.identifier;
+      const isbn13=info.industryIdentifiers?.find(i=>i.type==="ISBN_13")?.identifier;
+      // ISBN-10 doubles as Amazon ASIN for print books → direct product page
+      const amazonLink=isbn10
+        ?`https://www.amazon.com/dp/${isbn10}`
+        :`https://www.amazon.com/s?k=${encodeURIComponent((info.title||"")+" "+(info.authors?.[0]||""))}`;
+      return{
+        id:v.id,
+        title:info.title||"Untitled",
+        author:(info.authors||["Unknown"])[0],
+        thumbnail:info.imageLinks?.thumbnail?.replace("http://","https://"),
+        year:info.publishedDate?.slice(0,4)||null,
+        genres:(info.categories||[]).slice(0,2),
+        isbn10,isbn13,
+        amazonLink,
+      };
+    }).filter(b=>b.title&&b.author);
+  }catch{return[];}
+}
+
 // ─── PRIMITIVES ──────────────────────────────────────────────
 function Av({T,i,ink=0,s=34}){const t=gT(ink);return <div style={{width:s,height:s,borderRadius:"50%",background:`linear-gradient(145deg,${t.c}20,${T.bg2})`,border:`1.5px solid ${t.c}28`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:T.ui,fontSize:s*.34,fontWeight:700,color:t.c,flexShrink:0}}>{i}</div>;}
 function IB({T,ink,compact}){const t=gT(ink);return <span style={{display:"inline-flex",alignItems:"center",gap:3,padding:compact?"1px 5px":"2px 7px",borderRadius:4,fontSize:compact?9:10,fontWeight:600,fontFamily:T.ui,color:t.c,background:`${t.c}0D`}}>{compact?fN(ink):`${fN(ink)} · ${t.name}`}</span>;}
@@ -505,6 +534,129 @@ return <div style={{animation:"en .35s ease both"}}>
 <Card T={T} pad="16px"><button className="tb" onClick={onSignOut} style={{width:"100%",padding:"12px 0",borderRadius:8,border:`1px solid ${T.bdr}`,background:"none",fontFamily:T.ui,fontSize:13,fontWeight:600,color:T.tx3,cursor:"pointer",minHeight:44}}>Sign out</button></Card>
 </Sec></div>;}
 
+// ─── SEARCH MODAL ────────────────────────────────────────────
+function SearchModal({T,onClose,feed,onBook,onUser,onPost,onCompose}){
+const[q,setQ]=useState("");
+const[books,setBooks]=useState([]);
+const[bLoading,setBL]=useState(false);
+const inputRef=useRef(null);
+
+useEffect(()=>{inputRef.current?.focus();},[]);
+
+// Lock body scroll while modal is open
+useEffect(()=>{
+  const prev=document.body.style.overflow;
+  document.body.style.overflow="hidden";
+  return()=>{document.body.style.overflow=prev;};
+},[]);
+
+// Debounced Google Books search
+useEffect(()=>{
+  if(!q.trim()){setBooks([]);setBL(false);return;}
+  setBL(true);
+  const t=setTimeout(async()=>{
+    const r=await searchGoogleBooks(q);
+    setBooks(r);setBL(false);
+  },400);
+  return()=>clearTimeout(t);
+},[q]);
+
+const postResults=useMemo(()=>{
+  if(!q.trim())return[];
+  const lq=q.toLowerCase();
+  return(feed||[]).filter(f=>(f.text||"").toLowerCase().includes(lq)||(f.bookRef?.title||"").toLowerCase().includes(lq)||(f.bookRef?.author||"").toLowerCase().includes(lq)).slice(0,5);
+},[q,feed]);
+
+const userResults=useMemo(()=>{
+  if(!q.trim())return[];
+  const lq=q.toLowerCase();
+  const seen=new Set();
+  return(feed||[]).reduce((acc,f)=>{
+    if(!seen.has(f.user.id)&&(f.user.name.toLowerCase().includes(lq)||(f.user.handle||"").toLowerCase().includes(lq))){seen.add(f.user.id);acc.push(f.user);}
+    return acc;
+  },[]).slice(0,4);
+},[q,feed]);
+
+const hasAny=books.length>0||postResults.length>0||userResults.length>0;
+
+const SH={fontFamily:T.ui,fontSize:10,fontWeight:700,color:T.tx4,letterSpacing:".1em",textTransform:"uppercase",padding:"16px 0 10px"};
+
+return <div style={{position:"fixed",inset:0,zIndex:300,display:"flex",flexDirection:"column",justifyContent:"flex-end",animation:"fi .15s ease"}}>
+{/* Backdrop */}
+<div style={{position:"absolute",inset:0,background:"rgba(0,0,0,.55)",backdropFilter:"blur(4px)"}} onClick={onClose}/>
+{/* Bottom sheet */}
+<div style={{position:"relative",zIndex:1,background:T.bg,borderRadius:"20px 20px 0 0",maxHeight:"92vh",display:"flex",flexDirection:"column",animation:"si .2s ease",boxShadow:"0 -8px 48px rgba(0,0,0,.28)"}}>
+  {/* Search input bar */}
+  <div style={{display:"flex",alignItems:"center",gap:10,padding:"16px 16px 12px",borderBottom:`1px solid ${T.bdr}`,flexShrink:0}}>
+    <span style={{fontSize:20,color:T.tx4,flexShrink:0,lineHeight:1}}>⌕</span>
+    <input ref={inputRef} value={q} onChange={e=>setQ(e.target.value)} placeholder="Search books, posts, people…" style={{flex:1,background:"none",border:"none",fontFamily:T.ui,fontSize:15,color:T.tx,outline:"none"}}/>
+    {bLoading&&<Spin T={T}/>}
+    <button className="tb" onClick={onClose} style={{background:"none",border:"none",color:T.tx4,fontSize:20,cursor:"pointer",minWidth:36,minHeight:36,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>✕</button>
+  </div>
+
+  {/* Scrollable results */}
+  <div style={{overflowY:"auto",flex:1,padding:"0 16px 48px"}}>
+
+    {/* Empty / hint state */}
+    {!q.trim()&&<div style={{padding:"40px 0",textAlign:"center"}}>
+      <div style={{fontSize:36,marginBottom:10,opacity:.5}}>⌕</div>
+      <div style={{fontFamily:T.hd,fontSize:16,fontWeight:600,color:T.tx,marginBottom:6}}>Search everything</div>
+      <div style={{fontFamily:T.bd,fontSize:13,color:T.tx3,fontStyle:"italic",lineHeight:1.6}}>Books pull from Google Books with Amazon links.<br/>Find posts and people on Précis too.</div>
+    </div>}
+
+    {/* No results */}
+    {q.trim()&&!hasAny&&!bLoading&&<div style={{padding:"36px 0",textAlign:"center",fontFamily:T.bd,fontSize:13,color:T.tx4,fontStyle:"italic"}}>No results for "{q}"</div>}
+
+    {/* ── BOOKS (Google Books API) ── */}
+    {books.length>0&&<>
+      <div style={SH}>Books</div>
+      {books.map(b=><div key={b.id} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 0",borderBottom:`1px solid ${T.bdr}`}}>
+        {b.thumbnail
+          ?<img src={b.thumbnail} alt="" style={{width:40,height:56,objectFit:"cover",borderRadius:"2px 4px 4px 2px",flexShrink:0,boxShadow:"2px 0 8px rgba(0,0,0,.25)"}}/>
+          :<div style={{width:40,height:56,borderRadius:"2px 4px 4px 2px",flexShrink:0,background:`linear-gradient(145deg,${T.acc}BB,${T.acc}44)`,boxShadow:"2px 0 8px rgba(0,0,0,.2)"}}/>
+        }
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontFamily:T.hd,fontSize:14,fontWeight:700,color:T.tx,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{b.title}</div>
+          <div style={{fontFamily:T.bd,fontSize:11,color:T.tx3,fontStyle:"italic",marginTop:1}}>{b.author}{b.year?` · ${b.year}`:""}</div>
+          {b.genres.length>0&&<div style={{fontFamily:T.ui,fontSize:9,color:T.tx4,marginTop:3}}>{b.genres.join(" · ")}</div>}
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:6,flexShrink:0}}>
+          <a href={b.amazonLink} target="_blank" rel="noopener noreferrer" style={{display:"flex",alignItems:"center",justifyContent:"center",gap:3,padding:"5px 10px",borderRadius:6,background:"#FF9900",fontFamily:T.ui,fontSize:10,fontWeight:700,color:"#111",textDecoration:"none",whiteSpace:"nowrap"}}>Amazon ↗</a>
+          <button className="tb" onClick={()=>{onCompose({title:b.title,author:b.author,cc:null,thumbnail:b.thumbnail,amazonLink:b.amazonLink});onClose();}} style={{padding:"5px 10px",borderRadius:6,border:`1px solid ${T.bdrA}`,background:"none",fontFamily:T.ui,fontSize:10,fontWeight:700,color:T.tx2,cursor:"pointer",whiteSpace:"nowrap"}}>✎ Write</button>
+        </div>
+      </div>)}
+    </>}
+
+    {/* ── POSTS ── */}
+    {postResults.length>0&&<>
+      <div style={SH}>Posts</div>
+      {postResults.map(p=><button key={p.id} className="tb" onClick={()=>{onPost?.(p);onClose();}} style={{display:"flex",alignItems:"center",gap:10,padding:"12px 0",borderBottom:`1px solid ${T.bdr}`,background:"none",border:"none",cursor:"pointer",width:"100%",textAlign:"left"}}>
+        <Av T={T} i={p.user.in} ink={p.user.ink} s={32}/>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontFamily:T.ui,fontSize:12,fontWeight:700,color:T.tx,marginBottom:1}}>{p.user.name}</div>
+          <div style={{fontFamily:T.bd,fontSize:12,color:T.tx2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.text}</div>
+          {p.bookRef&&<div style={{fontFamily:T.ui,fontSize:10,color:T.acc,marginTop:2}}>{p.bookRef.title}</div>}
+        </div>
+      </button>)}
+    </>}
+
+    {/* ── PEOPLE ── */}
+    {userResults.length>0&&<>
+      <div style={SH}>People</div>
+      {userResults.map(u=><button key={u.id} className="tb" onClick={()=>{onUser?.(u);onClose();}} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:`1px solid ${T.bdr}`,background:"none",border:"none",cursor:"pointer",width:"100%",textAlign:"left"}}>
+        <Av T={T} i={u.in} ink={u.ink} s={38}/>
+        <div style={{flex:1}}>
+          <div style={{fontFamily:T.ui,fontSize:13,fontWeight:700,color:T.tx}}>{u.name}</div>
+          <div style={{fontFamily:T.ui,fontSize:11,color:T.tx4}}>{u.handle}</div>
+        </div>
+        <IB T={T} ink={u.ink} compact/>
+      </button>)}
+    </>}
+  </div>
+</div>
+</div>;
+}
+
 // ─── COMPOSE ─────────────────────────────────────────────────
 function ComposeScreen({T,onClose,initialType=null,initialBook=null}){
 const[type,setType]=useState(initialType);
@@ -517,7 +669,20 @@ const handlePublish=async()=>{if(submitting||!body.trim())return;setSub(true);se
 const types=[{id:"original",label:"Original Work",desc:"Fiction, poetry, essays",icon:"✎"},{id:"review",label:"Review",desc:"Your take on a book",icon:"◈"},{id:"recommendation",label:"Recommendation",desc:"Share a must-read",icon:"⬨"},{id:"spoiler",label:"Spoiler Zone",desc:"Discuss freely with warnings",icon:"⚠"}];
 const needsBook=type==="review"||type==="recommendation"||type==="spoiler";
 const allBooks=Object.values(BOOK_DATA).concat(MY_BOOKS.filter(b=>!BOOK_DATA[b.title]).map(b=>({...b,cc:null})));
-const bookResults=bookQ.trim()?allBooks.filter(b=>(b.title||"").toLowerCase().includes(bookQ.toLowerCase())||(b.author||"").toLowerCase().includes(bookQ.toLowerCase())):allBooks;
+const[gBooks,setGB]=useState([]);
+// Augment local search with Google Books API results
+useEffect(()=>{
+  if(!bookQ.trim()){setGB([]);return;}
+  const t=setTimeout(async()=>{
+    const r=await searchGoogleBooks(bookQ,6);
+    setGB(r.filter(b=>!allBooks.some(lb=>lb.title.toLowerCase()===b.title.toLowerCase())));
+  },400);
+  return()=>clearTimeout(t);
+// eslint-disable-next-line react-hooks/exhaustive-deps
+},[bookQ]);
+const bookResults=bookQ.trim()
+  ?[...allBooks.filter(b=>(b.title||"").toLowerCase().includes(bookQ.toLowerCase())||(b.author||"").toLowerCase().includes(bookQ.toLowerCase())),...gBooks]
+  :allBooks;
 
 if(published)return <div style={{animation:"en .3s ease both",textAlign:"center",padding:"60px 16px"}}><div style={{fontSize:48,marginBottom:16}}>✓</div><div style={{fontFamily:T.hd,fontSize:22,fontWeight:700,color:T.tx,marginBottom:8}}>Published!</div><div style={{fontFamily:T.bd,fontSize:13,color:T.tx3,marginBottom:20}}>Your post is live. +5 Ink earned.</div><button className="tb" onClick={onClose} style={{padding:"12px 24px",borderRadius:10,border:"none",background:T.acc,color:"#fff",fontFamily:T.ui,fontSize:13,fontWeight:700,cursor:"pointer",minHeight:44}}>Back to Feed</button></div>;
 
@@ -534,8 +699,8 @@ if(needsBook&&!book)return <div style={{animation:"en .3s ease both"}}>
 <span style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",fontSize:14,color:T.tx4,pointerEvents:"none"}}>⌕</span>
 </div>
 <div style={{display:"flex",flexDirection:"column",gap:8,maxHeight:"55vh",overflowY:"auto"}}>
-{bookResults.map((b,i)=><button key={i} className="tb" onClick={()=>setBook({title:b.title,author:b.author,cc:b.cc||null})} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 14px",borderRadius:12,background:T.sf,border:`1px solid ${T.bdr}`,cursor:"pointer",textAlign:"left",width:"100%",minHeight:56}}>
-<div style={{width:30,height:44,borderRadius:"2px 4px 4px 2px",background:`linear-gradient(145deg,${b.cc||T.acc}CC,${b.cc||T.acc||T.acc}60)`,boxShadow:"2px 0 6px rgba(0,0,0,.25)",flexShrink:0}}/>
+{bookResults.map((b,i)=><button key={i} className="tb" onClick={()=>setBook({title:b.title,author:b.author,cc:b.cc||null,thumbnail:b.thumbnail||null,amazonLink:b.amazonLink||null})} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 14px",borderRadius:12,background:T.sf,border:`1px solid ${T.bdr}`,cursor:"pointer",textAlign:"left",width:"100%",minHeight:56}}>
+{b.thumbnail?<img src={b.thumbnail} alt="" style={{width:30,height:44,objectFit:"cover",borderRadius:"2px 4px 4px 2px",flexShrink:0,boxShadow:"2px 0 6px rgba(0,0,0,.25)"}}/>:<div style={{width:30,height:44,borderRadius:"2px 4px 4px 2px",background:`linear-gradient(145deg,${b.cc||T.acc}CC,${b.cc||T.acc}60)`,boxShadow:"2px 0 6px rgba(0,0,0,.25)",flexShrink:0}}/>}
 <div style={{flex:1,minWidth:0}}><div style={{fontFamily:T.hd,fontSize:14,fontWeight:700,color:T.tx,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{b.title}</div><div style={{fontFamily:T.bd,fontSize:11,color:T.tx3,fontStyle:"italic",marginTop:1}}>{b.author}</div>{b.genres&&<div style={{fontFamily:T.ui,fontSize:9,color:T.tx4,marginTop:3}}>{b.genres.slice(0,2).join(" · ")}</div>}</div>
 <span style={{fontFamily:T.ui,fontSize:11,color:T.acc,flexShrink:0}}>Select →</span>
 </button>)}
@@ -748,12 +913,13 @@ const loadFeed=useCallback(async(cursor=null,append=false)=>{
 useEffect(()=>{if(apiUser){loadFeed(null,false);}else{setFeed([]);setHasMoreFeed(false);}},
 // eslint-disable-next-line react-hooks/exhaustive-deps
 [apiUser?.id]);
-const[searchQ,setSearchQ]=useState("");const[searchOpen,setSO]=useState(false);const[subView,setSV]=useState(null);const[activeBook,setAB]=useState(null);const[readerBook,setRB]=useState(null);const[viewedUser,setVU]=useState(null);const[viewedPost,setVP]=useState(null);
+const[searchQ,setSearchQ]=useState("");const[searchModal,setSM]=useState(false);const[subView,setSV]=useState(null);const[activeBook,setAB]=useState(null);const[readerBook,setRB]=useState(null);const[viewedUser,setVU]=useState(null);const[viewedPost,setVP]=useState(null);
 const[composeInit,setCI]=useState({type:null,book:null});
 const onBook=useCallback((title,author)=>{setAB({title,author});setSV(null);},[]);
 const onReview=useCallback((book)=>{setCI({type:"review",book});setSV("compose");setAB(null);},[]);
 const onUser=useCallback((user)=>{if(user.id===apiUser?.id){setTab("profile");setSV(null);setVU(null);setVP(null);}else{setVU(user);setSV("user");setAB(null);setVP(null);}},[apiUser?.id]);
 const onPost=useCallback((post)=>{setVP(post);},[]);
+const onCompose=useCallback((book)=>{setCI({type:null,book});setSV("compose");setSM(false);},[]);
 
 const onToggle=useCallback((id,type)=>{setFeed(prev=>prev.map(item=>{if(item.id!==id)return item;if(type==="like"){if(apiUser)API.toggleInteraction(id,"like").catch(()=>{});return{...item,isLiked:!item.isLiked,likes:item.likes+(item.isLiked?-1:1)};}if(type==="shelf"){if(apiUser)API.toggleInteraction(id,"save").catch(()=>{});return{...item,isShelved:!item.isShelved,shelved:item.shelved+(item.isShelved?-1:1)};}if(type==="repost")return{...item,isReposted:!item.isReposted,reposts:item.reposts+(item.isReposted?-1:1)};return item;}));},[]);
 const unread=NOTIFS.filter(n=>!n.read).length;const msgUnread=CONVOS.reduce((a,c)=>a+c.unread,0);
@@ -781,12 +947,14 @@ if(readerBook){const bd=BOOK_DATA[readerBook.title]||readerBook;return <div styl
 return <div style={{minHeight:"100vh",background:T.bg,color:T.tx,paddingBottom:viewedPost?0:72}}>
 <style>{gc(T)}</style>
 
+{/* SEARCH MODAL */}
+{searchModal&&<SearchModal T={T} onClose={()=>setSM(false)} feed={feed} onBook={onBook} onUser={onUser} onPost={onPost} onCompose={onCompose}/>}
+
 {/* MOBILE HEADER */}
 <header className="mh" style={{position:"sticky",top:0,zIndex:100,background:`${T.bg}EC`,backdropFilter:"blur(20px) saturate(1.3)",borderBottom:`1px solid ${T.bdr}`,padding:"0 16px",height:52,display:"flex",alignItems:"center",gap:10}}>
 {(subView||activeBook||viewedPost)?<button className="tb" onClick={()=>{if(viewedPost){setVP(null);}else{setSV(null);setAB(null);setVU(null);}}} style={{fontFamily:T.ui,fontSize:14,color:T.tx3,background:"none",border:"none",cursor:"pointer",minWidth:36,minHeight:36}}>←</button>:<span style={{fontFamily:T.hd,fontSize:22,fontWeight:700,color:T.tx,letterSpacing:"-.02em",flexShrink:0}}>Pr<span style={{color:T.acc}}>é</span>cis</span>}
 <div style={{flex:1}}/>
-{searchOpen&&<div style={{flex:1,position:"relative",animation:"fi .15s ease"}}><input autoFocus value={searchQ} onChange={e=>setSearchQ(e.target.value)} placeholder="Search…" style={{width:"100%",padding:"8px 12px 8px 30px",borderRadius:8,background:T.bg3,border:`1px solid ${T.bdrA}`,fontFamily:T.ui,fontSize:13,color:T.tx,outline:"none"}}/><span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",fontSize:13,color:T.tx4,pointerEvents:"none"}}>⌕</span></div>}
-<button className="tb" onClick={()=>{setSO(!searchOpen);if(searchOpen)setSearchQ("");}} style={{background:"none",border:"none",fontSize:18,color:searchOpen?T.acc:T.tx3,cursor:"pointer",padding:4,minWidth:36,minHeight:36,display:"flex",alignItems:"center",justifyContent:"center"}}>{searchOpen?"✕":"⌕"}</button>
+<button className="tb" onClick={()=>setSM(true)} style={{background:"none",border:"none",fontSize:22,color:T.tx3,cursor:"pointer",padding:4,minWidth:44,minHeight:44,display:"flex",alignItems:"center",justifyContent:"center"}}>⌕</button>
 <button className="tb" onClick={()=>setSV(sv=>sv==="notifications"?null:"notifications")} style={{background:"none",border:"none",fontSize:16,color:T.tx3,cursor:"pointer",padding:4,minWidth:36,minHeight:36,display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}><Bell size={16}/>{unread>0&&<div style={{position:"absolute",top:2,right:2,width:14,height:14,borderRadius:"50%",background:T.acc,fontFamily:T.ui,fontSize:8,fontWeight:700,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}>{unread}</div>}</button>
 <button className="tb" onClick={()=>setSV(sv=>sv==="messages"?null:"messages")} style={{background:"none",border:"none",fontSize:16,color:T.tx3,cursor:"pointer",padding:4,minWidth:36,minHeight:36,display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>✉{msgUnread>0&&<div style={{position:"absolute",top:2,right:2,width:14,height:14,borderRadius:"50%",background:T.acc,fontFamily:T.ui,fontSize:8,fontWeight:700,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}>{msgUnread}</div>}</button>
 <button className="tb" onClick={()=>setSV(sv=>sv==="settings"?null:"settings")} style={{background:"none",border:"none",color:subView==="settings"?T.acc:T.tx4,cursor:"pointer",padding:4,minWidth:36,minHeight:36,display:"flex",alignItems:"center",justifyContent:"center"}}><Settings size={16}/></button>
@@ -798,7 +966,7 @@ return <div style={{minHeight:"100vh",background:T.bg,color:T.tx,paddingBottom:v
 <span style={{fontFamily:T.hd,fontSize:24,fontWeight:700,color:T.tx,letterSpacing:"-.02em",marginRight:32,flexShrink:0,cursor:"pointer"}} onClick={()=>{setTab("feed");setSV(null);}}>Pr<span style={{color:T.acc}}>é</span>cis</span>
 <div style={{display:"flex",gap:1}}>{TABS.map(n=><button key={n.id} className="tb" onClick={()=>{setTab(n.id);setSV(null);}} style={{padding:"8px 14px",borderRadius:8,border:"none",fontFamily:T.ui,fontSize:12.5,fontWeight:tab===n.id&&!subView?700:500,cursor:"pointer",background:tab===n.id&&!subView?T.gs:"transparent",color:tab===n.id&&!subView?T.gold:T.tx3,display:"flex",alignItems:"center",gap:5}}><span style={{fontSize:14}}>{n.icon}</span> {n.label}</button>)}</div>
 <div style={{display:"flex",gap:1,marginLeft:8}}>{[{id:"clubs",l:"Clubs"},{id:"challenges",l:"Challenges"}].map(n=><button key={n.id} className="tb" onClick={()=>setSV(n.id)} style={{padding:"8px 12px",borderRadius:8,border:"none",fontFamily:T.ui,fontSize:12,fontWeight:subView===n.id?700:500,cursor:"pointer",background:subView===n.id?T.gs:"transparent",color:subView===n.id?T.gold:T.tx4}}>{n.l}</button>)}</div>
-<div style={{flex:1,maxWidth:240,margin:"0 20px",position:"relative"}}><input value={searchQ} onChange={e=>setSearchQ(e.target.value)} placeholder="Search…" style={{width:"100%",padding:"8px 14px 8px 32px",borderRadius:8,background:T.bg3,border:`1px solid ${searchQ?T.bdrA:T.bdr}`,fontFamily:T.ui,fontSize:12,color:T.tx,outline:"none"}}/><span style={{position:"absolute",left:11,top:"50%",transform:"translateY(-50%)",fontSize:13,color:T.tx4,pointerEvents:"none"}}>⌕</span></div>
+<button className="tb" onClick={()=>setSM(true)} style={{display:"flex",alignItems:"center",gap:8,flex:1,maxWidth:260,margin:"0 20px",padding:"8px 14px 8px 12px",borderRadius:8,background:T.bg3,border:`1px solid ${T.bdr}`,cursor:"text",fontFamily:T.ui,fontSize:12,color:T.tx4,textAlign:"left"}}><span style={{fontSize:15,lineHeight:1}}>⌕</span>Search books, posts, people…</button>
 <div style={{flex:1}}/>
 <button className="tb" onClick={()=>{setCI({type:null,book:null});setSV("compose");}} style={{padding:"8px 20px",borderRadius:8,border:"none",background:T.acc,color:"#fff",fontFamily:T.ui,fontSize:12,fontWeight:700,cursor:"pointer",boxShadow:`0 2px 8px ${T.acc}30`,display:"flex",alignItems:"center",gap:5,marginRight:10}}>✎ Write</button>
 <button className="tb" onClick={()=>setSV(sv=>sv==="notifications"?null:"notifications")} style={{background:"none",border:"none",fontSize:16,color:T.tx3,cursor:"pointer",padding:6,position:"relative"}}><Bell size={16}/>{unread>0&&<div style={{position:"absolute",top:0,right:0,width:14,height:14,borderRadius:"50%",background:T.acc,fontFamily:T.ui,fontSize:8,fontWeight:700,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}>{unread}</div>}</button>
