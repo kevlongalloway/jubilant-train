@@ -9,6 +9,42 @@ const { requireAuth, optionalAuth } = require('../middleware/auth');
 const router = express.Router();
 const prisma = new PrismaClient();
 
+// GET /api/users?q= — search users by username or handle
+router.get('/', optionalAuth, async (req, res, next) => {
+  try {
+    const { q, limit = '10' } = req.query;
+    const take = Math.min(parseInt(limit, 10), 50);
+
+    if (!q || !q.trim()) {
+      return res.json({ users: [] });
+    }
+
+    const users = await prisma.user.findMany({
+      where: {
+        OR: [
+          { username: { contains: q, mode: 'insensitive' } },
+          { handle: { contains: q, mode: 'insensitive' } },
+        ],
+      },
+      take,
+      select: {
+        id: true,
+        username: true,
+        handle: true,
+        bio: true,
+        lens: true,
+        ink: true,
+        _count: { select: { posts: true, followers: true } },
+      },
+      orderBy: { ink: 'desc' },
+    });
+
+    res.json({ users });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /api/users/:id — public profile with counts + isFollowing
 router.get('/:id', optionalAuth, async (req, res, next) => {
   try {

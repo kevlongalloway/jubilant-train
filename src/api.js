@@ -115,11 +115,12 @@ export async function getFeed(cursor = null, limit = 20) {
 
 // ─── Posts ────────────────────────────────────────────────────
 
-export async function getPosts({ userId, type, bookId, cursor, limit = 20 } = {}) {
+export async function getPosts({ userId, type, bookId, q, cursor, limit = 20 } = {}) {
   const params = new URLSearchParams({ limit: String(limit) });
   if (userId) params.set('userId', userId);
   if (type) params.set('type', type);
   if (bookId) params.set('bookId', bookId);
+  if (q) params.set('q', q);
   if (cursor) params.set('cursor', cursor);
   return apiFetch(`/posts?${params}`);
 }
@@ -133,6 +134,11 @@ export async function createPost({ content, type, bookId, bookTitle, bookAuthor,
 
 export async function followUser(userId) {
   return apiFetch(`/users/${userId}/follow`, { method: 'POST' });
+}
+
+export async function searchUsers(q, limit = 10) {
+  const params = new URLSearchParams({ q, limit: String(limit) });
+  return apiFetch(`/users?${params}`);
 }
 
 // ─── Comments ─────────────────────────────────────────────────

@@ -535,10 +535,13 @@ return <div style={{animation:"en .35s ease both"}}>
 </Sec></div>;}
 
 // ─── SEARCH MODAL ────────────────────────────────────────────
-function SearchModal({T,onClose,feed,onBook,onUser,onPost,onCompose}){
+function SearchModal({T,onClose,onBook,onUser,onPost,onCompose}){
 const[q,setQ]=useState("");
-const[books,setBooks]=useState([]);
-const[bLoading,setBL]=useState(false);
+const[loading,setLoading]=useState(false);
+const[gBooks,setGBooks]=useState([]);
+const[platBooks,setPlatBooks]=useState([]);
+const[platPosts,setPlatPosts]=useState([]);
+const[platUsers,setPlatUsers]=useState([]);
 const inputRef=useRef(null);
 
 useEffect(()=>{inputRef.current?.focus();},[]);
@@ -550,36 +553,40 @@ useEffect(()=>{
   return()=>{document.body.style.overflow=prev;};
 },[]);
 
-// Debounced Google Books search
+// Debounced search — platform books/posts/users + Google Books in parallel
 useEffect(()=>{
-  if(!q.trim()){setBooks([]);setBL(false);return;}
-  setBL(true);
+  if(!q.trim()){setGBooks([]);setPlatBooks([]);setPlatPosts([]);setPlatUsers([]);setLoading(false);return;}
+  setLoading(true);
   const t=setTimeout(async()=>{
-    const r=await searchGoogleBooks(q);
-    setBooks(r);setBL(false);
+    try{
+      const[gb,pb,pp,pu]=await Promise.allSettled([
+        searchGoogleBooks(q),
+        API.getBooks({q,limit:5}),
+        API.getPosts({q,limit:5}),
+        API.searchUsers(q,5),
+      ]);
+      setGBooks(gb.status==="fulfilled"?gb.value:[]);
+      setPlatBooks(pb.status==="fulfilled"?(pb.value?.books||[]):[]);
+      setPlatPosts(pp.status==="fulfilled"?(pp.value?.posts||[]):[]);
+      setPlatUsers(pu.status==="fulfilled"?(pu.value?.users||[]):[]);
+    }finally{setLoading(false);}
   },400);
   return()=>clearTimeout(t);
 },[q]);
 
-const postResults=useMemo(()=>{
-  if(!q.trim())return[];
-  const lq=q.toLowerCase();
-  return(feed||[]).filter(f=>(f.text||"").toLowerCase().includes(lq)||(f.bookRef?.title||"").toLowerCase().includes(lq)||(f.bookRef?.author||"").toLowerCase().includes(lq)).slice(0,5);
-},[q,feed]);
-
-const userResults=useMemo(()=>{
-  if(!q.trim())return[];
-  const lq=q.toLowerCase();
-  const seen=new Set();
-  return(feed||[]).reduce((acc,f)=>{
-    if(!seen.has(f.user.id)&&(f.user.name.toLowerCase().includes(lq)||(f.user.handle||"").toLowerCase().includes(lq))){seen.add(f.user.id);acc.push(f.user);}
-    return acc;
-  },[]).slice(0,4);
-},[q,feed]);
-
-const hasAny=books.length>0||postResults.length>0||userResults.length>0;
-
+const hasAny=gBooks.length>0||platBooks.length>0||platPosts.length>0||platUsers.length>0;
+const hasPlatform=platBooks.length>0||platPosts.length>0||platUsers.length>0;
 const SH={fontFamily:T.ui,fontSize:10,fontWeight:700,color:T.tx4,letterSpacing:".1em",textTransform:"uppercase",padding:"16px 0 10px"};
+const SK={height:12,borderRadius:4,background:T.bg2,backgroundImage:`linear-gradient(90deg,${T.bg2} 25%,${T.bg3} 50%,${T.bg2} 75%)`,backgroundSize:"400px 100%",animation:"sk 1.2s ease infinite"};
+
+const mapPP=p=>({
+  id:p.id,type:p.type,tags:p.tags||[],
+  text:p.content,
+  user:{id:p.user.id,name:p.user.username,handle:p.user.handle,in:(p.user.username||"?").slice(0,2).toUpperCase(),ink:p.user.ink||0,lens:p.user.lens||"explorer"},
+  bookRef:p.book?{title:p.book.title,author:p.book.author,cc:(p.book.metadata||{}).cc||"#5A7AB4"}:null,
+  likes:p.likes||0,comments:p.comments||0,shelved:p.saves||0,reposts:0,
+  isLiked:p.isLiked||false,isShelved:p.isSaved||false,isReposted:false,time:p.createdAt,
+});
 
 return <div style={{position:"fixed",inset:0,zIndex:300,display:"flex",flexDirection:"column",justifyContent:"flex-end",animation:"fi .15s ease"}}>
 {/* Backdrop */}
@@ -589,8 +596,8 @@ return <div style={{position:"fixed",inset:0,zIndex:300,display:"flex",flexDirec
   {/* Search input bar */}
   <div style={{display:"flex",alignItems:"center",gap:10,padding:"16px 16px 12px",borderBottom:`1px solid ${T.bdr}`,flexShrink:0}}>
     <span style={{fontSize:20,color:T.tx4,flexShrink:0,lineHeight:1}}>⌕</span>
-    <input ref={inputRef} value={q} onChange={e=>setQ(e.target.value)} placeholder="Search books, posts, people…" style={{flex:1,background:"none",border:"none",fontFamily:T.ui,fontSize:15,color:T.tx,outline:"none"}}/>
-    {bLoading&&<Spin T={T}/>}
+    <input ref={inputRef} value={q} onChange={e=>setQ(e.target.value)} placeholder="Search books, authors, posts, people…" style={{flex:1,background:"none",border:"none",fontFamily:T.ui,fontSize:15,color:T.tx,outline:"none"}}/>
+    {loading&&<Spin T={T} size={18}/>}
     <button className="tb" onClick={onClose} style={{background:"none",border:"none",color:T.tx4,fontSize:20,cursor:"pointer",minWidth:36,minHeight:36,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>✕</button>
   </div>
 
@@ -601,56 +608,96 @@ return <div style={{position:"fixed",inset:0,zIndex:300,display:"flex",flexDirec
     {!q.trim()&&<div style={{padding:"40px 0",textAlign:"center"}}>
       <div style={{fontSize:36,marginBottom:10,opacity:.5}}>⌕</div>
       <div style={{fontFamily:T.hd,fontSize:16,fontWeight:600,color:T.tx,marginBottom:6}}>Search everything</div>
-      <div style={{fontFamily:T.bd,fontSize:13,color:T.tx3,fontStyle:"italic",lineHeight:1.6}}>Books pull from Google Books with Amazon links.<br/>Find posts and people on Précis too.</div>
+      <div style={{fontFamily:T.bd,fontSize:13,color:T.tx3,fontStyle:"italic",lineHeight:1.6}}>Find books, authors, posts, and readers on Précis.<br/>Also searches Google Books for titles and authors.</div>
+    </div>}
+
+    {/* Loading skeleton */}
+    {q.trim()&&loading&&<div style={{padding:"24px 0"}}>
+      {[80,55,65].map((w,i)=><div key={i} style={{display:"flex",gap:12,padding:"14px 0",borderBottom:`1px solid ${T.bdr}`}}>
+        <div style={{...SK,width:40,height:56,borderRadius:4,flexShrink:0}}/>
+        <div style={{flex:1,display:"flex",flexDirection:"column",gap:8,justifyContent:"center"}}>
+          <div style={{...SK,width:`${w}%`}}/>
+          <div style={{...SK,width:`${w*.6}%`}}/>
+        </div>
+      </div>)}
     </div>}
 
     {/* No results */}
-    {q.trim()&&!hasAny&&!bLoading&&<div style={{padding:"36px 0",textAlign:"center",fontFamily:T.bd,fontSize:13,color:T.tx4,fontStyle:"italic"}}>No results for "{q}"</div>}
+    {q.trim()&&!hasAny&&!loading&&<div style={{padding:"36px 0",textAlign:"center"}}>
+      <div style={{fontSize:28,marginBottom:10,opacity:.3}}>◎</div>
+      <div style={{fontFamily:T.hd,fontSize:15,fontWeight:600,color:T.tx,marginBottom:4}}>No results</div>
+      <div style={{fontFamily:T.bd,fontSize:13,color:T.tx4,fontStyle:"italic"}}>Nothing found for "{q}"</div>
+    </div>}
 
-    {/* ── BOOKS (Google Books API) ── */}
-    {books.length>0&&<>
-      <div style={SH}>Books</div>
-      {books.map(b=><div key={b.id} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 0",borderBottom:`1px solid ${T.bdr}`}}>
-        {b.thumbnail
-          ?<img src={b.thumbnail} alt="" style={{width:40,height:56,objectFit:"cover",borderRadius:"2px 4px 4px 2px",flexShrink:0,boxShadow:"2px 0 8px rgba(0,0,0,.25)"}}/>
-          :<div style={{width:40,height:56,borderRadius:"2px 4px 4px 2px",flexShrink:0,background:`linear-gradient(145deg,${T.acc}BB,${T.acc}44)`,boxShadow:"2px 0 8px rgba(0,0,0,.2)"}}/>
-        }
-        <div style={{flex:1,minWidth:0}}>
-          <div style={{fontFamily:T.hd,fontSize:14,fontWeight:700,color:T.tx,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{b.title}</div>
-          <div style={{fontFamily:T.bd,fontSize:11,color:T.tx3,fontStyle:"italic",marginTop:1}}>{b.author}{b.year?` · ${b.year}`:""}</div>
-          {b.genres.length>0&&<div style={{fontFamily:T.ui,fontSize:9,color:T.tx4,marginTop:3}}>{b.genres.join(" · ")}</div>}
-        </div>
-        <div style={{display:"flex",flexDirection:"column",gap:6,flexShrink:0}}>
-          <a href={b.amazonLink} target="_blank" rel="noopener noreferrer" style={{display:"flex",alignItems:"center",justifyContent:"center",gap:3,padding:"5px 10px",borderRadius:6,background:"#FF9900",fontFamily:T.ui,fontSize:10,fontWeight:700,color:"#111",textDecoration:"none",whiteSpace:"nowrap"}}>Amazon ↗</a>
-          <button className="tb" onClick={()=>{onCompose({title:b.title,author:b.author,cc:null,thumbnail:b.thumbnail,amazonLink:b.amazonLink});onClose();}} style={{padding:"5px 10px",borderRadius:6,border:`1px solid ${T.bdrA}`,background:"none",fontFamily:T.ui,fontSize:10,fontWeight:700,color:T.tx2,cursor:"pointer",whiteSpace:"nowrap"}}>✎ Write</button>
-        </div>
-      </div>)}
-    </>}
+    {!loading&&<>
+      {/* ── BOOKS ON PRÉCIS ── */}
+      {platBooks.length>0&&<>
+        <div style={SH}>Books on Précis</div>
+        {platBooks.map(b=><button key={b.id} className="tb" onClick={()=>{onBook?.(b.title,b.author);onClose();}} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 0",borderBottom:`1px solid ${T.bdr}`,background:"none",border:"none",cursor:"pointer",width:"100%",textAlign:"left"}}>
+          <div style={{width:40,height:56,borderRadius:"2px 4px 4px 2px",flexShrink:0,background:`linear-gradient(145deg,${b.metadata?.cc||T.acc}BB,${b.metadata?.cc||T.acc}44)`,boxShadow:"2px 0 8px rgba(0,0,0,.2)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <span style={{fontSize:14,opacity:.5}}>📖</span>
+          </div>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontFamily:T.hd,fontSize:14,fontWeight:700,color:T.tx,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{b.title}</div>
+            <div style={{fontFamily:T.bd,fontSize:11,color:T.tx3,fontStyle:"italic",marginTop:1}}>{b.author}</div>
+            {b.genres?.length>0&&<div style={{fontFamily:T.ui,fontSize:9,color:T.tx4,marginTop:3}}>{b.genres.slice(0,2).join(" · ")}</div>}
+          </div>
+          <div style={{fontFamily:T.ui,fontSize:10,color:T.acc,flexShrink:0,fontWeight:600,padding:"4px 8px",borderRadius:6,background:`${T.acc}0D`}}>{b._count?.posts||0} posts</div>
+        </button>)}
+      </>}
 
-    {/* ── POSTS ── */}
-    {postResults.length>0&&<>
-      <div style={SH}>Posts</div>
-      {postResults.map(p=><button key={p.id} className="tb" onClick={()=>{onPost?.(p);onClose();}} style={{display:"flex",alignItems:"center",gap:10,padding:"12px 0",borderBottom:`1px solid ${T.bdr}`,background:"none",border:"none",cursor:"pointer",width:"100%",textAlign:"left"}}>
-        <Av T={T} i={p.user.in} ink={p.user.ink} s={32}/>
-        <div style={{flex:1,minWidth:0}}>
-          <div style={{fontFamily:T.ui,fontSize:12,fontWeight:700,color:T.tx,marginBottom:1}}>{p.user.name}</div>
-          <div style={{fontFamily:T.bd,fontSize:12,color:T.tx2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.text}</div>
-          {p.bookRef&&<div style={{fontFamily:T.ui,fontSize:10,color:T.acc,marginTop:2}}>{p.bookRef.title}</div>}
-        </div>
-      </button>)}
-    </>}
+      {/* ── POSTS ── */}
+      {platPosts.length>0&&<>
+        <div style={SH}>Posts</div>
+        {platPosts.map(p=>{const mp=mapPP(p);return <button key={mp.id} className="tb" onClick={()=>{onPost?.(mp);onClose();}} style={{display:"flex",alignItems:"center",gap:10,padding:"12px 0",borderBottom:`1px solid ${T.bdr}`,background:"none",border:"none",cursor:"pointer",width:"100%",textAlign:"left"}}>
+          <Av T={T} i={mp.user.in} ink={mp.user.ink} s={32}/>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontFamily:T.ui,fontSize:12,fontWeight:700,color:T.tx,marginBottom:1}}>{mp.user.name}</div>
+            <div style={{fontFamily:T.bd,fontSize:12,color:T.tx2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{mp.text}</div>
+            {mp.bookRef&&<div style={{fontFamily:T.ui,fontSize:10,color:T.acc,marginTop:2}}>{mp.bookRef.title} · {mp.bookRef.author}</div>}
+          </div>
+        </button>;})}
+      </>}
 
-    {/* ── PEOPLE ── */}
-    {userResults.length>0&&<>
-      <div style={SH}>People</div>
-      {userResults.map(u=><button key={u.id} className="tb" onClick={()=>{onUser?.(u);onClose();}} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:`1px solid ${T.bdr}`,background:"none",border:"none",cursor:"pointer",width:"100%",textAlign:"left"}}>
-        <Av T={T} i={u.in} ink={u.ink} s={38}/>
-        <div style={{flex:1}}>
-          <div style={{fontFamily:T.ui,fontSize:13,fontWeight:700,color:T.tx}}>{u.name}</div>
-          <div style={{fontFamily:T.ui,fontSize:11,color:T.tx4}}>{u.handle}</div>
-        </div>
-        <IB T={T} ink={u.ink} compact/>
-      </button>)}
+      {/* ── PEOPLE ── */}
+      {platUsers.length>0&&<>
+        <div style={SH}>People</div>
+        {platUsers.map(u=><button key={u.id} className="tb" onClick={()=>{onUser?.({id:u.id,name:u.username,handle:u.handle,in:(u.username||"?").slice(0,2).toUpperCase(),ink:u.ink||0,lens:u.lens||"explorer"});onClose();}} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:`1px solid ${T.bdr}`,background:"none",border:"none",cursor:"pointer",width:"100%",textAlign:"left"}}>
+          <Av T={T} i={(u.username||"?").slice(0,2).toUpperCase()} ink={u.ink||0} s={38}/>
+          <div style={{flex:1}}>
+            <div style={{fontFamily:T.ui,fontSize:13,fontWeight:700,color:T.tx}}>{u.username}</div>
+            <div style={{fontFamily:T.ui,fontSize:11,color:T.tx4}}>{u.handle} · {u._count?.posts||0} posts</div>
+          </div>
+          <IB T={T} ink={u.ink||0} compact/>
+        </button>)}
+      </>}
+
+      {/* Divider between platform and Google Books */}
+      {hasPlatform&&gBooks.length>0&&<div style={{display:"flex",alignItems:"center",gap:10,padding:"16px 0 4px"}}>
+        <div style={{flex:1,height:1,background:T.bdr}}/>
+        <span style={{fontFamily:T.ui,fontSize:9,color:T.tx4,letterSpacing:".08em",textTransform:"uppercase",whiteSpace:"nowrap"}}>Also on Google Books</span>
+        <div style={{flex:1,height:1,background:T.bdr}}/>
+      </div>}
+
+      {/* ── GOOGLE BOOKS ── */}
+      {gBooks.length>0&&<>
+        {!hasPlatform&&<div style={SH}>Books</div>}
+        {gBooks.map(b=><div key={b.id} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 0",borderBottom:`1px solid ${T.bdr}`}}>
+          {b.thumbnail
+            ?<img src={b.thumbnail} alt="" style={{width:40,height:56,objectFit:"cover",borderRadius:"2px 4px 4px 2px",flexShrink:0,boxShadow:"2px 0 8px rgba(0,0,0,.25)"}}/>
+            :<div style={{width:40,height:56,borderRadius:"2px 4px 4px 2px",flexShrink:0,background:`linear-gradient(145deg,${T.acc}BB,${T.acc}44)`,boxShadow:"2px 0 8px rgba(0,0,0,.2)"}}/>
+          }
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontFamily:T.hd,fontSize:14,fontWeight:700,color:T.tx,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{b.title}</div>
+            <div style={{fontFamily:T.bd,fontSize:11,color:T.tx3,fontStyle:"italic",marginTop:1}}>{b.author}{b.year?` · ${b.year}`:""}</div>
+            {b.genres.length>0&&<div style={{fontFamily:T.ui,fontSize:9,color:T.tx4,marginTop:3}}>{b.genres.join(" · ")}</div>}
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:6,flexShrink:0}}>
+            <a href={b.amazonLink} target="_blank" rel="noopener noreferrer" style={{display:"flex",alignItems:"center",justifyContent:"center",gap:3,padding:"5px 10px",borderRadius:6,background:"#FF9900",fontFamily:T.ui,fontSize:10,fontWeight:700,color:"#111",textDecoration:"none",whiteSpace:"nowrap"}}>Amazon ↗</a>
+            <button className="tb" onClick={()=>{onCompose({title:b.title,author:b.author,cc:null,thumbnail:b.thumbnail,amazonLink:b.amazonLink});onClose();}} style={{padding:"5px 10px",borderRadius:6,border:`1px solid ${T.bdrA}`,background:"none",fontFamily:T.ui,fontSize:10,fontWeight:700,color:T.tx2,cursor:"pointer",whiteSpace:"nowrap"}}>✎ Write</button>
+          </div>
+        </div>)}
+      </>}
     </>}
   </div>
 </div>
@@ -948,7 +995,7 @@ return <div style={{minHeight:"100vh",background:T.bg,color:T.tx,paddingBottom:v
 <style>{gc(T)}</style>
 
 {/* SEARCH MODAL */}
-{searchModal&&<SearchModal T={T} onClose={()=>setSM(false)} feed={feed} onBook={onBook} onUser={onUser} onPost={onPost} onCompose={onCompose}/>}
+{searchModal&&<SearchModal T={T} onClose={()=>setSM(false)} onBook={onBook} onUser={onUser} onPost={onPost} onCompose={onCompose}/>}
 
 {/* MOBILE HEADER */}
 <header className="mh" style={{position:"sticky",top:0,zIndex:100,background:`${T.bg}EC`,backdropFilter:"blur(20px) saturate(1.3)",borderBottom:`1px solid ${T.bdr}`,padding:"0 16px",height:52,display:"flex",alignItems:"center",gap:10}}>

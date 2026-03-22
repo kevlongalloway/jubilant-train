@@ -27,10 +27,10 @@ router.get('/trending', async (req, res, next) => {
   }
 });
 
-// GET /api/posts?userId=&type=&bookId=&limit=&cursor=
+// GET /api/posts?userId=&type=&bookId=&q=&limit=&cursor=
 router.get('/', optionalAuth, async (req, res, next) => {
   try {
-    const { userId, type, bookId, limit = '20', cursor } = req.query;
+    const { userId, type, bookId, q, limit = '20', cursor } = req.query;
     const take = Math.min(parseInt(limit, 10), 50);
 
     const where = {};
@@ -38,6 +38,13 @@ router.get('/', optionalAuth, async (req, res, next) => {
     if (type) where.type = type;
     if (bookId) where.bookId = bookId;
     if (cursor) where.createdAt = { lt: new Date(cursor) };
+    if (q) {
+      where.OR = [
+        { content: { contains: q, mode: 'insensitive' } },
+        { book: { title: { contains: q, mode: 'insensitive' } } },
+        { book: { author: { contains: q, mode: 'insensitive' } } },
+      ];
+    }
 
     const posts = await prisma.post.findMany({
       where,
