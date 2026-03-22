@@ -85,20 +85,38 @@ async function toggleInteraction(userId, postId, type) {
 async function getPostInteractionCounts(postIds) {
   if (!postIds.length) return {};
 
-  const rows = await prisma.interaction.groupBy({
-    by: ['postId', 'type'],
-    where: { postId: { in: postIds } },
-    _count: { id: true },
-    _sum: { value: true },
-  });
+  const [rows, commentRows] = await Promise.all([
+    prisma.interaction.groupBy({
+      by: ['postId', 'type'],
+      where: { postId: { in: postIds } },
+      _count: { id: true },
+      _sum: { value: true },
+    }),
+    // Use actual Comment table for accurate comment count
+    prisma.comment.groupBy({
+      by: ['postId'],
+      where: { postId: { in: postIds } },
+      _count: { id: true },
+    }),
+  ]);
 
   const counts = {};
   for (const row of rows) {
     if (!counts[row.postId]) {
       counts[row.postId] = { likes: 0, comments: 0, saves: 0, views: 0, clicks: 0, engagementScore: 0 };
     }
-    counts[row.postId][row.type + 's'] = row._count.id;
+    if (row.type !== 'comment') { // comment count comes from Comment table
+      counts[row.postId][row.type + 's'] = row._count.id;
+    }
     counts[row.postId].engagementScore += (row._sum.value || 0);
+  }
+
+  // Override with real comment counts
+  for (const row of commentRows) {
+    if (!counts[row.postId]) {
+      counts[row.postId] = { likes: 0, comments: 0, saves: 0, views: 0, clicks: 0, engagementScore: 0 };
+    }
+    counts[row.postId].comments = row._count.id;
   }
 
   return counts;

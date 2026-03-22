@@ -135,6 +135,23 @@ export async function followUser(userId) {
   return apiFetch(`/users/${userId}/follow`, { method: 'POST' });
 }
 
+// ─── Comments ─────────────────────────────────────────────────
+
+export async function getComments(postId) {
+  return apiFetch(`/posts/${postId}/comments`);
+}
+
+export async function createComment(postId, content, parentId = null) {
+  return apiFetch(`/posts/${postId}/comments`, {
+    method: 'POST',
+    body: JSON.stringify({ content, parentId }),
+  });
+}
+
+export async function likeComment(commentId) {
+  return apiFetch(`/comments/${commentId}/like`, { method: 'POST' });
+}
+
 export async function deletePost(postId) {
   return apiFetch(`/posts/${postId}`, { method: 'DELETE' });
 }

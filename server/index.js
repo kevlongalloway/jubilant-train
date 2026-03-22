@@ -14,6 +14,7 @@ const interactRoutes = require('./routes/interact');
 const booksRoutes = require('./routes/books');
 const postsRoutes = require('./routes/posts');
 const usersRoutes = require('./routes/users');
+const commentsRoutes = require('./routes/comments');
 const { runPreferenceBuilder } = require('./jobs/preferenceBuilder');
 
 const app = express();
@@ -43,6 +44,7 @@ app.use('/api/interact', interactRoutes);
 app.use('/api/books', booksRoutes);
 app.use('/api/posts', postsRoutes);
 app.use('/api/users', usersRoutes);
+app.use('/api', commentsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

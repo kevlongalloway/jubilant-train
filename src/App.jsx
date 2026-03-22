@@ -57,25 +57,143 @@ function LB({T,lens,compact}){const l=LN[lens];if(!l)return null;return <span st
 function TT({T,type}){const t=PT[type];if(!t)return null;const c=T[t.ck]||T.gold;return <span style={{display:"inline-flex",alignItems:"center",gap:3,padding:"2px 8px",borderRadius:4,fontSize:9,fontWeight:700,fontFamily:T.ui,color:c,background:`${c}0D`,letterSpacing:".04em",textTransform:"uppercase"}}>{t.icon} {t.label}</span>;}
 function EB({T,icon,count,active,ac,onClick}){const[p,sP]=useState(false);return <button className="tb" onClick={()=>{onClick?.();sP(true);setTimeout(()=>sP(false),300);}} style={{display:"flex",alignItems:"center",gap:4,padding:"8px 10px",borderRadius:8,background:active?`${ac}0D`:"transparent",border:"none",cursor:"pointer",animation:p?"po .3s ease":"none",minHeight:40}}><span style={{display:"flex",alignItems:"center",color:active?ac:T.tx4}}>{icon}</span><span style={{fontFamily:T.ui,fontSize:11,fontWeight:600,color:active?ac:T.tx4,fontVariantNumeric:"tabular-nums"}}>{fN(count)}</span></button>;}
 function Sec({T,title,sub,children,action}){return <section style={{marginBottom:24}}><div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}><div><div style={{fontFamily:T.hd,fontSize:17,fontWeight:600,color:T.tx}}>{title}</div>{sub&&<div style={{fontFamily:T.bd,fontSize:11,color:T.tx3,fontStyle:"italic",marginTop:1}}>{sub}</div>}</div>{action}</div>{children}</section>;}
-function Card({T,children,pad="16px",mb=0}){return <div className="cl" style={{background:T.sf,borderRadius:14,border:`1px solid ${T.bdr}`,padding:pad,marginBottom:mb}}>{children}</div>;}
+function Card({T,children,pad="16px",mb=0,onClick}){return <div className="cl" onClick={onClick} style={{background:T.sf,borderRadius:14,border:`1px solid ${T.bdr}`,padding:pad,marginBottom:mb,cursor:onClick?"pointer":"default"}}>{children}</div>;}
 function Empty({T,icon,title,sub}){return <div style={{textAlign:"center",padding:"48px 16px",animation:"fi .3s ease"}}><div style={{fontSize:36,marginBottom:10,opacity:.15}}>{icon}</div><div style={{fontFamily:T.hd,fontSize:18,fontWeight:600,color:T.tx,marginBottom:6}}>{title}</div><p style={{fontFamily:T.bd,fontSize:13,color:T.tx3}}>{sub}</p></div>;}
 
 // ─── FEED CARD ───────────────────────────────────────────────
-function FC({T,item,onToggle,onBook,onUser,index=0}){const[so,setSo]=useState(false);const[mo,setMo]=useState(false);
+function FC({T,item,onToggle,onBook,onUser,onPost,index=0}){const[so,setSo]=useState(false);const[mo,setMo]=useState(false);
 const content=<>{item.title&&<h3 style={{fontFamily:T.hd,fontSize:19,fontWeight:600,color:T.tx,lineHeight:1.3,marginBottom:6}}>{item.title}</h3>}<div style={{fontFamily:T.bd,fontSize:14.5,lineHeight:1.7,color:T.tx2,fontWeight:300,whiteSpace:"pre-line"}}>{item.text}</div></>;
 return <article className="cl" style={{background:T.sf,borderRadius:14,border:`1px solid ${T.bdr}`,padding:"18px 16px 12px",animation:`en .35s ease ${index*.05}s both`}}>
 <div style={{display:"flex",alignItems:"flex-start",gap:10,marginBottom:12}}><div onClick={()=>onUser?.(item.user)} style={{cursor:"pointer",flexShrink:0}}><Av T={T} i={item.user.in} ink={item.user.ink} s={38}/></div><div style={{flex:1,minWidth:0}}><div style={{display:"flex",alignItems:"center",gap:5,flexWrap:"wrap"}}><span onClick={()=>onUser?.(item.user)} style={{fontFamily:T.ui,fontSize:13.5,fontWeight:650,color:T.tx,cursor:"pointer"}}>{item.user.name}</span>{item.attestation&&<span style={{fontSize:8,padding:"1px 5px",borderRadius:3,background:`${T.gn}0D`,color:T.gn,fontFamily:T.ui,fontWeight:700}}>✓ HUMAN</span>}{item.isFirst&&<span style={{fontSize:8,padding:"1px 5px",borderRadius:3,background:`${T.gold}0D`,color:T.gold,fontFamily:T.ui,fontWeight:700}}>✦ FIRST</span>}</div><div style={{display:"flex",alignItems:"center",gap:5,marginTop:2,flexWrap:"wrap"}}><span style={{fontFamily:T.ui,fontSize:11,color:T.tx4}}>{item.user.h}</span><span style={{color:T.tx4,fontSize:8}}>·</span><span style={{fontFamily:T.ui,fontSize:11,color:T.tx4}}>{item.time}</span><IB T={T} ink={item.user.ink} compact/><LB T={T} lens={item.user.lens} compact/></div></div><div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}><TT T={T} type={item.type}/><div style={{position:"relative"}}><button className="tb" onClick={()=>setMo(!mo)} style={{background:"none",border:"none",cursor:"pointer",padding:8,fontSize:18,color:T.tx4,minWidth:36,minHeight:36,display:"flex",alignItems:"center",justifyContent:"center"}}>⋮</button>{mo&&<div onClick={()=>setMo(false)} style={{position:"absolute",top:"100%",right:0,background:T.sf,border:`1px solid ${T.bdrA}`,borderRadius:12,padding:6,minWidth:160,boxShadow:T.shL,zIndex:50,animation:"si .12s ease"}}>{["Hide post","Mute author","Report"].map(a=><button key={a} className="tb" style={{display:"block",width:"100%",padding:"12px 14px",borderRadius:8,border:"none",background:"none",fontFamily:T.ui,fontSize:13,color:a==="Report"?T.rd:T.tx2,cursor:"pointer",textAlign:"left",minHeight:44}}>{a}</button>)}</div>}</div></div></div>
 {item.bookRef&&<div onClick={()=>onBook?.(item.bookRef.title,item.bookRef.author)} className="tb" style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",borderRadius:8,background:T.bg2,border:`1px solid ${T.bdr}`,marginBottom:10,cursor:"pointer"}}><div style={{width:26,height:38,borderRadius:3,flexShrink:0,background:`linear-gradient(140deg,${item.bookRef.cc||T.acc}90,${item.bookRef.cc||T.acc}50)`}}/><div style={{flex:1,minWidth:0}}><div style={{fontFamily:T.ui,fontSize:12,fontWeight:600,color:T.tx}}>{item.bookRef.title}</div><div style={{fontFamily:T.ui,fontSize:10,color:T.tx3}}>{item.bookRef.author}</div></div>{item.rating&&<div style={{fontFamily:T.ui,fontSize:11,color:T.gold}}>{"★".repeat(item.rating)}<span style={{color:T.tx4}}>{"★".repeat(5-item.rating)}</span></div>}</div>}
 {item.inspiredBy&&<div style={{display:"flex",alignItems:"center",gap:5,padding:"6px 10px",borderRadius:6,background:`${T.pl}06`,border:`1px solid ${T.pl}0D`,marginBottom:10,fontFamily:T.ui,fontSize:10.5,color:T.pl}}>◇ Inspired by <strong>{item.inspiredBy.title}</strong> — {item.inspiredBy.author}</div>}
-{item.type==="spoiler"&&!so?<div style={{padding:"24px 16px",borderRadius:10,textAlign:"center",background:`repeating-linear-gradient(135deg,${T.rd}05,${T.rd}05 2px,transparent 2px,transparent 8px)`,border:`1px dashed ${T.rd}20`}}><div style={{fontFamily:T.ui,fontSize:10,fontWeight:700,color:T.rd,letterSpacing:".08em",textTransform:"uppercase",marginBottom:4}}>⚠ Spoiler Zone</div><div style={{fontFamily:T.bd,fontSize:12,color:T.tx3,marginBottom:14}}>{item.bookRef?.title}{item.spoilerPage?` · ${item.spoilerPage}`:""}</div><button className="tb" onClick={()=>setSo(true)} style={{padding:"10px 24px",borderRadius:8,background:`${T.rd}0D`,border:`1px solid ${T.rd}20`,fontFamily:T.ui,fontSize:12,fontWeight:600,color:T.rd,cursor:"pointer",minHeight:44}}>Reveal Content</button></div>:content}
+<div onClick={()=>onPost?.(item)} style={{cursor:onPost?"pointer":"default"}}>
+{item.type==="spoiler"&&!so?<div style={{padding:"24px 16px",borderRadius:10,textAlign:"center",background:`repeating-linear-gradient(135deg,${T.rd}05,${T.rd}05 2px,transparent 2px,transparent 8px)`,border:`1px dashed ${T.rd}20`}}><div style={{fontFamily:T.ui,fontSize:10,fontWeight:700,color:T.rd,letterSpacing:".08em",textTransform:"uppercase",marginBottom:4}}>⚠ Spoiler Zone</div><div style={{fontFamily:T.bd,fontSize:12,color:T.tx3,marginBottom:14}}>{item.bookRef?.title}{item.spoilerPage?` · ${item.spoilerPage}`:""}</div><button className="tb" onClick={e=>{e.stopPropagation();setSo(true);}} style={{padding:"10px 24px",borderRadius:8,background:`${T.rd}0D`,border:`1px solid ${T.rd}20`,fontFamily:T.ui,fontSize:12,fontWeight:600,color:T.rd,cursor:"pointer",minHeight:44}}>Reveal Content</button></div>:content}
+</div>
 {item.tags?.length>0&&<div style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:10}}>{item.tags.map(t=><span key={t} style={{padding:"2px 8px",borderRadius:4,fontSize:10,fontFamily:T.ui,fontWeight:500,color:T.tx3,background:T.bg2,border:`1px solid ${T.bdr}`}}>{t}</span>)}</div>}
-<div style={{display:"flex",alignItems:"center",gap:0,marginTop:12,paddingTop:10,borderTop:`1px solid ${T.bdr}`,marginLeft:-4,marginRight:-4}}><EB T={T} icon="♡" count={item.likes} active={item.isLiked} ac={T.rd} onClick={()=>onToggle(item.id,"like")}/><EB T={T} icon={<Reply size={15}/>} count={item.comments} active={false} ac={T.bl}/><EB T={T} icon="⊞" count={item.shelved} active={item.isShelved} ac={T.gold} onClick={()=>onToggle(item.id,"shelf")}/><EB T={T} icon="⤴" count={item.reposts} active={item.isReposted} ac={T.gn} onClick={()=>onToggle(item.id,"repost")}/><div style={{flex:1}}/><button className="tb" style={{background:"none",border:"none",cursor:"pointer",fontFamily:T.ui,fontSize:11,color:T.tx4,padding:"8px 6px",minHeight:40}}>⎘</button></div>
+<div style={{display:"flex",alignItems:"center",gap:0,marginTop:12,paddingTop:10,borderTop:`1px solid ${T.bdr}`,marginLeft:-4,marginRight:-4}}><EB T={T} icon="♡" count={item.likes} active={item.isLiked} ac={T.rd} onClick={()=>onToggle(item.id,"like")}/><EB T={T} icon={<Reply size={15}/>} count={item.comments} active={false} ac={T.bl} onClick={()=>onPost?.(item)}/><EB T={T} icon="⊞" count={item.shelved} active={item.isShelved} ac={T.gold} onClick={()=>onToggle(item.id,"shelf")}/><EB T={T} icon="⤴" count={item.reposts} active={item.isReposted} ac={T.gn} onClick={()=>onToggle(item.id,"repost")}/><div style={{flex:1}}/><button className="tb" style={{background:"none",border:"none",cursor:"pointer",fontFamily:T.ui,fontSize:11,color:T.tx4,padding:"8px 6px",minHeight:40}}>⎘</button></div>
 </article>;}
 
 // ─── SPINNER ─────────────────────────────────────────────────
 function Spin({T,size=30,mt=0,mb=0}){
 return <div style={{display:"flex",justifyContent:"center",alignItems:"center",padding:`${mt}px 0 ${mb}px`}}>
 <div style={{width:size,height:size,borderRadius:"50%",border:`2.5px solid ${T.bdr}`,borderTopColor:T.acc,animation:"spin .7s linear infinite"}}/>
+</div>;}
+
+// ─── POST DETAIL (Instagram-style comments) ──────────────────
+function PostDetailScreen({T,post,onBack,onToggle,onBook,onUser,apiUser}){
+const[item,setItem]=useState(post);
+const[comments,setComments]=useState(null);
+const[newComment,setNewComment]=useState("");
+const[replyTo,setReplyTo]=useState(null);// {id,parentId,username}
+const[posting,setPosting]=useState(false);
+const[expanded,setExpanded]=useState(new Set());
+const inputRef=useRef(null);
+
+useEffect(()=>{
+  API.getComments(post.id).then(data=>{
+    setComments(data.map(mapC));
+  }).catch(()=>setComments([]));
+},[post.id]);
+
+const mapC=(c)=>({
+  id:c.id,content:c.content,
+  time:fTime(c.createdAt),likes:c.likes||0,isLiked:c.isLiked||false,
+  user:{id:c.user.id,name:c.user.username,handle:c.user.handle,in:(c.user.username||"?").slice(0,2).toUpperCase(),ink:c.user.ink||0,lens:c.user.lens||"explorer"},
+  replies:(c.replies||[]).map(r=>({
+    id:r.id,content:r.content,time:fTime(r.createdAt),likes:r.likes||0,isLiked:r.isLiked||false,
+    user:{id:r.user.id,name:r.user.username,handle:r.user.handle,in:(r.user.username||"?").slice(0,2).toUpperCase(),ink:r.user.ink||0,lens:r.user.lens||"explorer"},
+    replies:[],
+  })),
+});
+
+const localToggle=(id,type)=>{
+  if(type==="like")setItem(p=>({...p,isLiked:!p.isLiked,likes:p.likes+(p.isLiked?-1:1)}));
+  if(type==="shelf")setItem(p=>({...p,isShelved:!p.isShelved,shelved:p.shelved+(p.isShelved?-1:1)}));
+  onToggle?.(id,type);
+};
+
+const submit=async()=>{
+  if(!newComment.trim()||posting)return;
+  setPosting(true);
+  try{
+    const c=await API.createComment(post.id,newComment.trim(),replyTo?.id||null);
+    const mc=mapC(c);
+    if(replyTo?.id){
+      setComments(prev=>prev.map(cm=>cm.id===replyTo.id?{...cm,replies:[...cm.replies,mc]}:cm));
+      setExpanded(prev=>new Set([...prev,replyTo.id]));
+    }else{
+      setComments(prev=>[...prev,mc]);
+    }
+    setItem(p=>({...p,comments:p.comments+1}));
+    setNewComment("");setReplyTo(null);
+  }catch(e){/* silent */}finally{setPosting(false);}
+};
+
+const toggleCommentLike=(cid,isReply,parentId)=>{
+  API.likeComment(cid).then(({liked,likes})=>{
+    setComments(prev=>prev.map(cm=>{
+      if(!isReply&&cm.id===cid)return{...cm,isLiked:liked,likes};
+      if(isReply&&cm.id===parentId)return{...cm,replies:cm.replies.map(r=>r.id===cid?{...r,isLiked:liked,likes}:r)};
+      return cm;
+    }));
+  }).catch(()=>{});
+};
+
+const meIn=(apiUser?.username||"?").slice(0,2).toUpperCase();
+const meInk=apiUser?.ink||0;
+
+function CRow({c,isReply=false,parentId=null}){return(
+<div style={{display:"flex",gap:10,marginBottom:14,paddingLeft:isReply?40:0}}>
+  <div onClick={()=>onUser?.({id:c.user.id,name:c.user.name,h:c.user.handle,in:c.user.in,ink:c.user.ink,lens:c.user.lens})} style={{flexShrink:0,cursor:"pointer"}}><Av T={T} i={c.user.in} ink={c.user.ink} s={isReply?28:32}/></div>
+  <div style={{flex:1,minWidth:0}}>
+    <div style={{marginBottom:2}}>
+      <span onClick={()=>onUser?.({id:c.user.id,name:c.user.name,h:c.user.handle,in:c.user.in,ink:c.user.ink,lens:c.user.lens})} style={{fontFamily:T.ui,fontSize:13,fontWeight:700,color:T.tx,cursor:"pointer",marginRight:6}}>{c.user.name}</span>
+      <span style={{fontFamily:T.bd,fontSize:13,color:T.tx2,lineHeight:1.5,wordBreak:"break-word"}}>{c.content}</span>
+    </div>
+    <div style={{display:"flex",alignItems:"center",gap:12}}>
+      <span style={{fontFamily:T.ui,fontSize:11,color:T.tx4}}>{c.time}</span>
+      {c.likes>0&&<span style={{fontFamily:T.ui,fontSize:11,color:T.tx4}}>{c.likes} like{c.likes!==1?"s":""}</span>}
+      <button className="tb" onClick={()=>{setReplyTo({id:isReply?parentId:c.id,parentId:isReply?parentId:c.id,username:c.user.name});setNewComment(`@${c.user.name} `);setTimeout(()=>inputRef.current?.focus(),50);}} style={{background:"none",border:"none",fontFamily:T.ui,fontSize:11,fontWeight:700,color:T.tx4,cursor:"pointer",padding:0,minHeight:24}}>Reply</button>
+    </div>
+    {!isReply&&c.replies.length>0&&!expanded.has(c.id)&&(
+      <button className="tb" onClick={()=>setExpanded(prev=>new Set([...prev,c.id]))} style={{background:"none",border:"none",fontFamily:T.ui,fontSize:12,fontWeight:700,color:T.tx3,cursor:"pointer",padding:"6px 0",display:"flex",alignItems:"center",gap:6,minHeight:32}}>
+        <div style={{width:20,height:1,background:T.bdr}}/> View {c.replies.length} {c.replies.length===1?"reply":"replies"}
+      </button>
+    )}
+    {!isReply&&expanded.has(c.id)&&c.replies.map(r=><CRow key={r.id} c={r} isReply parentId={c.id}/>)}
+  </div>
+  <button className="tb" onClick={()=>toggleCommentLike(c.id,isReply,parentId)} style={{background:"none",border:"none",padding:"0 2px",cursor:"pointer",color:c.isLiked?T.rd:T.tx4,fontSize:14,minWidth:28,minHeight:28,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",alignSelf:"flex-start",marginTop:2}}>
+    {c.isLiked?"♥":"♡"}
+  </button>
+</div>
+);}
+
+return <div style={{animation:"en .3s ease both",paddingBottom:80}}>
+<button className="tb" onClick={onBack} style={{fontFamily:T.ui,fontSize:14,color:T.tx3,background:"none",border:"none",cursor:"pointer",marginBottom:14,minHeight:40,display:"flex",alignItems:"center",gap:6}}>← Back</button>
+{/* Full post */}
+<FC T={T} item={item} onToggle={localToggle} onBook={onBook} onUser={onUser}/>
+{/* Comments section */}
+<div style={{marginTop:16,paddingTop:16,borderTop:`1px solid ${T.bdr}`}}>
+<div style={{fontFamily:T.ui,fontSize:13,fontWeight:700,color:T.tx,marginBottom:16}}>
+  {item.comments===0?"No comments yet":`${item.comments} Comment${item.comments!==1?"s":""}`}
+</div>
+{comments===null?<Spin T={T} mt={20} mb={20}/>:comments.length===0?<div style={{fontFamily:T.bd,fontSize:13,color:T.tx3,fontStyle:"italic",padding:"8px 0 20px"}}>Be the first to comment.</div>:comments.map(c=><CRow key={c.id} c={c}/>)}
+</div>
+{/* Sticky comment input */}
+<div style={{position:"fixed",bottom:"calc(60px + env(safe-area-inset-bottom))",left:0,right:0,background:`${T.bg}EE`,backdropFilter:"blur(16px)",borderTop:`1px solid ${T.bdr}`,padding:"10px 16px",zIndex:90}}>
+  {replyTo&&<div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6,fontFamily:T.ui,fontSize:11,color:T.tx4}}>
+    <span>Replying to <strong style={{color:T.tx}}>@{replyTo.username}</strong></span>
+    <button className="tb" onClick={()=>{setReplyTo(null);setNewComment("");}} style={{background:"none",border:"none",color:T.tx4,cursor:"pointer",fontSize:14,padding:0,minWidth:20,minHeight:20,marginLeft:4}}>✕</button>
+  </div>}
+  <div style={{display:"flex",alignItems:"center",gap:10}}>
+    <Av T={T} i={meIn} ink={meInk} s={32}/>
+    <input ref={inputRef} value={newComment} onChange={e=>setNewComment(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();submit();}}} placeholder={replyTo?"Add a reply…":"Add a comment…"} style={{flex:1,padding:"10px 14px",borderRadius:20,background:T.bg2,border:`1px solid ${newComment.trim()?T.bdrA:T.bdr}`,fontFamily:T.ui,fontSize:13,color:T.tx,outline:"none"}}/>
+    <button className="tb" onClick={submit} disabled={!newComment.trim()||posting} style={{background:"none",border:"none",fontFamily:T.ui,fontSize:13,fontWeight:700,color:newComment.trim()&&!posting?T.acc:T.tx4,cursor:newComment.trim()&&!posting?"pointer":"default",padding:"0 4px",minHeight:40,minWidth:40}}>
+      {posting?"…":"Post"}
+    </button>
+  </div>
+</div>
 </div>;}
 
 // ─── SKELETON ────────────────────────────────────────────────
@@ -100,7 +218,7 @@ return <article style={{background:T.sf,borderRadius:14,border:`1px solid ${T.bd
 }
 
 // ─── FEED SCREEN ─────────────────────────────────────────────
-function FeedScreen({T,feed,onToggle,onBook,onUser,searchQ,loadMore,onRefresh,feedLoading,hasMoreFeed}){
+function FeedScreen({T,feed,onToggle,onBook,onUser,onPost,searchQ,loadMore,onRefresh,feedLoading,hasMoreFeed}){
 const[filter,setFilter]=useState("foryou");const[pi,setPi]=useState(0);const[pullActive,setPullActive]=useState(false);const bottomRef=useRef(null);
 // Touch-based pull-to-refresh: detect downward swipe when already at top
 useEffect(()=>{
@@ -132,9 +250,9 @@ return <>
   ?<Spin T={T} size={32} mt={60} mb={60}/>
   :searched.length===0
     ?<Empty T={T} icon="⌕" title={searchQ?`Nothing for "${searchQ}"`:"No posts here yet"} sub={searchQ?"Try different keywords.":"Be the first to write one."}/>
-    :<>{searched.slice(0,3).map((item,i)=><FC key={item.id} T={T} item={item} onToggle={onToggle} onBook={onBook} onUser={onUser} index={i}/>)}
+    :<>{searched.slice(0,3).map((item,i)=><FC key={item.id} T={T} item={item} onToggle={onToggle} onBook={onBook} onUser={onUser} onPost={onPost} index={i}/>)}
        {searched.length>3&&WP}
-       {searched.slice(3).map((item,i)=><FC key={item.id} T={T} item={item} onToggle={onToggle} onBook={onBook} onUser={onUser} index={i+3}/>)}</>}
+       {searched.slice(3).map((item,i)=><FC key={item.id} T={T} item={item} onToggle={onToggle} onBook={onBook} onUser={onUser} onPost={onPost} index={i+3}/>)}</>}
 </div>
 {/* Trending Now — appears after posts like Instagram's "suggested" section */}
 {!feedLoading&&searched.length>0&&<div style={{marginTop:16}}><Card T={T} pad="16px 16px 8px"><div style={{fontFamily:T.hd,fontSize:16,fontWeight:600,color:T.tx,marginBottom:12}}>Trending Now</div>{TRD.map((b,i)=><div key={i} className="tb" style={{display:"flex",alignItems:"center",gap:10,padding:"10px 4px",cursor:"pointer",borderBottom:i<TRD.length-1?`1px solid ${T.bdr}`:"none",minHeight:48}}><div style={{fontFamily:T.mn,fontSize:11,fontWeight:500,color:T.tx4,width:18,textAlign:"center"}}>{i+1}</div><div style={{width:22,height:32,borderRadius:3,flexShrink:0,background:`linear-gradient(140deg,${b.c}AA,${b.c}60)`}}/><div style={{flex:1,minWidth:0}}><div style={{fontFamily:T.ui,fontSize:12,fontWeight:600,color:T.tx}}>{b.title}</div><div style={{fontFamily:T.ui,fontSize:10,color:T.tx3}}>{b.author}</div></div><span style={{fontFamily:T.mn,fontSize:10,fontWeight:500,color:T.gn,background:`${T.gn}0D`,padding:"2px 6px",borderRadius:3}}>{b.heat}</span></div>)}</Card></div>}
@@ -256,8 +374,8 @@ return <div style={{animation:"en .35s ease both"}}>
 </div>;}
 
 // ─── PROFILE ─────────────────────────────────────────────────
-function ProfileScreen({T,user=ME,apiUser}){
-const[tab,setTab]=useState("posts");const[following,setFollowing]=useState(false);const[stats,setStats]=useState(null);const[profilePosts,setProfilePosts]=useState(null);const isMe=user===ME||user.id===apiUser?.id;const targetId=isMe?apiUser?.id:user.id;useEffect(()=>{if(!targetId||targetId==="me")return;setStats(null);setProfilePosts(null);API.getUser(targetId).then(data=>{setStats(data);if(data.isFollowing!==undefined)setFollowing(data.isFollowing);}).catch(()=>{});},[targetId]);useEffect(()=>{if(!stats?.id)return;API.getPosts({userId:stats.id,limit:50}).then(r=>setProfilePosts((r.posts||[]).map(p=>({id:p.id,type:p.type,title:p.book?.title||p.content.slice(0,60),text:p.content,bookRef:p.book?{title:p.book.title,author:p.book.author,cc:(p.book.metadata||{}).cc||"#5A7AB4"}:null,likes:p.likes||0,comments:p.comments||0,shelved:p.saves||0,tags:p.tags||[],time:fTime(p.createdAt)})))).catch(()=>{});},[stats?.id]);const displayUser=stats?{...user,name:stats.username,h:stats.handle,bio:stats.bio||user.bio,ink:stats.ink,lens:stats.lens,in:(stats.username||"?").slice(0,2).toUpperCase()}:isMe&&apiUser?{...user,name:apiUser.username,h:apiUser.handle,bio:apiUser.bio||user.bio,ink:apiUser.ink||user.ink,lens:apiUser.lens||user.lens,in:(apiUser.username||"?").slice(0,2).toUpperCase()}:user;const tier=gT(displayUser.ink);const lens=LN[displayUser.lens];const userPosts=profilePosts??[];
+function ProfileScreen({T,user=ME,apiUser,onPost}){
+const[tab,setTab]=useState("posts");const[following,setFollowing]=useState(false);const[stats,setStats]=useState(null);const[profilePosts,setProfilePosts]=useState(null);const isMe=user===ME||user.id===apiUser?.id;const targetId=isMe?apiUser?.id:user.id;useEffect(()=>{if(!targetId||targetId==="me")return;setStats(null);setProfilePosts(null);API.getUser(targetId).then(data=>{setStats(data);if(data.isFollowing!==undefined)setFollowing(data.isFollowing);}).catch(()=>{});},[targetId]);useEffect(()=>{if(!stats?.id)return;API.getPosts({userId:stats.id,limit:50}).then(r=>setProfilePosts((r.posts||[]).map(p=>({id:p.id,type:p.type,title:p.book?.title||p.content.slice(0,60),text:p.content,bookRef:p.book?{title:p.book.title,author:p.book.author,cc:(p.book.metadata||{}).cc||"#5A7AB4"}:null,likes:p.likes||0,comments:p.comments||0,shelved:p.saves||0,reposts:0,isLiked:p.isLiked||false,isShelved:p.isSaved||false,isReposted:false,tags:p.tags||[],time:fTime(p.createdAt),user:{id:stats.id,name:stats.username,h:stats.handle,in:(stats.username||"?").slice(0,2).toUpperCase(),ink:stats.ink||0,lens:stats.lens||"explorer"}})))).catch(()=>{});},[stats?.id]);const displayUser=stats?{...user,name:stats.username,h:stats.handle,bio:stats.bio||user.bio,ink:stats.ink,lens:stats.lens,in:(stats.username||"?").slice(0,2).toUpperCase()}:isMe&&apiUser?{...user,name:apiUser.username,h:apiUser.handle,bio:apiUser.bio||user.bio,ink:apiUser.ink||user.ink,lens:apiUser.lens||user.lens,in:(apiUser.username||"?").slice(0,2).toUpperCase()}:user;const tier=gT(displayUser.ink);const lens=LN[displayUser.lens];const userPosts=profilePosts??[];
 return <div style={{animation:"en .35s ease both"}}>
 <Card T={T} pad="24px 16px" mb={16}><div style={{display:"flex",alignItems:"center",gap:14,marginBottom:16}}><Av T={T} i={displayUser.in} ink={displayUser.ink} s={56}/><div style={{flex:1}}><div style={{fontFamily:T.hd,fontSize:22,fontWeight:700,color:T.tx}}>{displayUser.name}</div><div style={{fontFamily:T.ui,fontSize:12,color:T.tx4,marginTop:2}}>{displayUser.h}</div><div style={{display:"flex",gap:6,marginTop:6}}><IB T={T} ink={displayUser.ink}/><LB T={T} lens={displayUser.lens}/></div></div>
 {isMe?<button className="tb" style={{padding:"8px 16px",borderRadius:8,border:`1px solid ${T.bdr}`,background:"transparent",fontFamily:T.ui,fontSize:11,fontWeight:600,color:T.tx3,cursor:"pointer",minHeight:40}}>Edit</button>:<button className="tb" onClick={()=>{const newVal=!following;setFollowing(newVal);API.followUser(targetId).then(r=>setFollowing(r.following)).catch(()=>setFollowing(!newVal));}} style={{padding:"8px 16px",borderRadius:8,border:`1px solid ${following?T.bdr:T.acc}`,background:following?"transparent":T.acc,fontFamily:T.ui,fontSize:11,fontWeight:700,color:following?T.tx3:"#fff",cursor:"pointer",minHeight:40}}>{following?"Following":"Follow"}</button>}
@@ -266,7 +384,7 @@ return <div style={{animation:"en .35s ease both"}}>
 <div style={{display:"flex",gap:20,fontFamily:T.ui,fontSize:12}}><div><strong style={{color:T.tx,fontSize:16}}>{stats?._count?.posts??user.posts??userPosts.length}</strong><div style={{color:T.tx4,fontSize:10}}>Posts</div></div><div><strong style={{color:T.tx,fontSize:16}}>{stats?._count?.followers??user.followers??0}</strong><div style={{color:T.tx4,fontSize:10}}>Followers</div></div><div><strong style={{color:T.tx,fontSize:16}}>{stats?._count?.following??user.following??0}</strong><div style={{color:T.tx4,fontSize:10}}>Following</div></div><div><strong style={{color:T.tx,fontSize:16}}>{stats?.booksRead??user.booksRead??0}</strong><div style={{color:T.tx4,fontSize:10}}>Books Read</div></div></div>
 <div style={{marginTop:16,padding:"12px 14px",borderRadius:10,background:`${tier.c}08`,border:`1px solid ${tier.c}15`}}><div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}><div><div style={{fontFamily:T.ui,fontSize:10,fontWeight:700,color:tier.c,letterSpacing:".06em",textTransform:"uppercase"}}>{tier.name}</div><div style={{fontFamily:T.mn,fontSize:20,fontWeight:700,color:tier.c}}>{fN(displayUser.ink)}</div></div><div style={{width:80,height:4,borderRadius:2,background:`${tier.c}15`}}><div style={{width:`${Math.min((displayUser.ink/(TIERS[TIERS.findIndex(t=>t===tier)+1]?.min||2000))*100,100)}%`,height:"100%",borderRadius:2,background:tier.c}}/></div></div></div></Card>
 <div style={{display:"flex",gap:0,marginBottom:14,borderBottom:`1px solid ${T.bdr}`}}>{[{id:"posts",l:"Posts"},{id:"shelves",l:"Shelves"},{id:"about",l:"About"}].map(t=><button key={t.id} className="tb" onClick={()=>setTab(t.id)} style={{padding:"10px 16px",border:"none",cursor:"pointer",fontFamily:T.ui,fontSize:12,fontWeight:tab===t.id?700:500,background:"transparent",color:tab===t.id?T.tx:T.tx3,borderBottom:tab===t.id?`2px solid ${T.acc}`:"2px solid transparent"}}>{t.l}</button>)}</div>
-{tab==="posts"&&<div style={{display:"flex",flexDirection:"column",gap:10}}>{profilePosts===null?<div style={{fontFamily:T.ui,fontSize:12,color:T.tx4,padding:"24px 0",textAlign:"center"}}>Loading…</div>:userPosts.length===0?<Empty T={T} icon="✎" title="No posts yet" sub={isMe?"Your first post earns +10 Ink.":"Nothing posted yet."}/>:userPosts.map((item,i)=><Card key={item.id} T={T} pad="14px 16px"><div style={{fontFamily:T.hd,fontSize:15,fontWeight:600,color:T.tx,marginBottom:4}}>{item.title||item.bookRef?.title}</div><div style={{fontFamily:T.bd,fontSize:12,color:T.tx3,lineHeight:1.5}}>{item.text.slice(0,120)}…</div><div style={{fontFamily:T.ui,fontSize:10,color:T.tx4,marginTop:6}}>♡ {item.likes} · <MessageCircle size={9} style={{verticalAlign:"middle"}}/> {item.comments} · ◆ {item.shelved}</div></Card>)}</div>}
+{tab==="posts"&&<div style={{display:"flex",flexDirection:"column",gap:10}}>{profilePosts===null?<Spin T={T} mt={24} mb={24}/>:userPosts.length===0?<Empty T={T} icon="✎" title="No posts yet" sub={isMe?"Your first post earns +10 Ink.":"Nothing posted yet."}/>:userPosts.map((item,i)=><Card key={item.id} T={T} pad="14px 16px" onClick={()=>onPost?.(item)}><div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}><TT T={T} type={item.type}/><span style={{fontFamily:T.ui,fontSize:10,color:T.tx4}}>{item.time}</span></div>{(item.title||item.bookRef?.title)&&<div style={{fontFamily:T.hd,fontSize:15,fontWeight:600,color:T.tx,marginBottom:4}}>{item.title||item.bookRef?.title}</div>}<div style={{fontFamily:T.bd,fontSize:12,color:T.tx3,lineHeight:1.5}}>{item.text.slice(0,140)}{item.text.length>140?"…":""}</div><div style={{fontFamily:T.ui,fontSize:10,color:T.tx4,marginTop:8,display:"flex",gap:12}}>♡ {item.likes} · <MessageCircle size={9} style={{verticalAlign:"middle",display:"inline"}}/> {item.comments} · ◆ {item.shelved}</div></Card>)}</div>}
 {tab==="shelves"&&<div style={{display:"flex",flexDirection:"column",gap:8}}>{SHELF_ITEMS.slice(0,3).map(s=><Card key={s.id} T={T} pad="12px 14px"><div style={{fontFamily:T.hd,fontSize:14,fontWeight:600,color:T.tx}}>{s.title||s.book?.title}</div><div style={{fontFamily:T.ui,fontSize:10,color:T.tx4,marginTop:2}}>by {s.authorName} · Shelved {s.shelvedAt}</div></Card>)}</div>}
 {tab==="about"&&<Card T={T} pad="16px"><div style={{fontFamily:T.ui,fontSize:10,fontWeight:700,color:T.tx4,letterSpacing:".08em",textTransform:"uppercase",marginBottom:10}}>Reader Identity</div><div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}><IB T={T} ink={displayUser.ink}/><LB T={T} lens={displayUser.lens}/></div><div style={{fontFamily:T.ui,fontSize:10,fontWeight:700,color:T.tx4,letterSpacing:".08em",textTransform:"uppercase",marginBottom:8}}>Reading Stats</div><div style={{fontFamily:T.bd,fontSize:13,color:T.tx2,lineHeight:1.8}}>{stats?.booksRead??user.booksRead??0} books read · Member since {stats?.createdAt?new Date(stats.createdAt).toLocaleDateString('en-US',{month:'long',year:'numeric'}):'Jan 2026'}</div></Card>}
 </div>;}
@@ -588,29 +706,31 @@ const loadFeed=useCallback(async(cursor=null,append=false)=>{
 useEffect(()=>{if(apiUser){loadFeed(null,false);}else{setFeed([]);setHasMoreFeed(false);}},
 // eslint-disable-next-line react-hooks/exhaustive-deps
 [apiUser?.id]);
-const[searchQ,setSearchQ]=useState("");const[searchOpen,setSO]=useState(false);const[subView,setSV]=useState(null);const[activeBook,setAB]=useState(null);const[readerBook,setRB]=useState(null);const[viewedUser,setVU]=useState(null);
+const[searchQ,setSearchQ]=useState("");const[searchOpen,setSO]=useState(false);const[subView,setSV]=useState(null);const[activeBook,setAB]=useState(null);const[readerBook,setRB]=useState(null);const[viewedUser,setVU]=useState(null);const[viewedPost,setVP]=useState(null);
 const[composeInit,setCI]=useState({type:null,book:null});
 const onBook=useCallback((title,author)=>{setAB({title,author});setSV(null);},[]);
 const onReview=useCallback((book)=>{setCI({type:"review",book});setSV("compose");setAB(null);},[]);
-const onUser=useCallback((user)=>{if(user.id===apiUser?.id){setTab("profile");setSV(null);setVU(null);}else{setVU(user);setSV("user");setAB(null);}},[apiUser?.id]);
+const onUser=useCallback((user)=>{if(user.id===apiUser?.id){setTab("profile");setSV(null);setVU(null);setVP(null);}else{setVU(user);setSV("user");setAB(null);setVP(null);}},[apiUser?.id]);
+const onPost=useCallback((post)=>{setVP(post);},[]);
 
 const onToggle=useCallback((id,type)=>{setFeed(prev=>prev.map(item=>{if(item.id!==id)return item;if(type==="like"){if(apiUser)API.toggleInteraction(id,"like").catch(()=>{});return{...item,isLiked:!item.isLiked,likes:item.likes+(item.isLiked?-1:1)};}if(type==="shelf"){if(apiUser)API.toggleInteraction(id,"save").catch(()=>{});return{...item,isShelved:!item.isShelved,shelved:item.shelved+(item.isShelved?-1:1)};}if(type==="repost")return{...item,isReposted:!item.isReposted,reposts:item.reposts+(item.isReposted?-1:1)};return item;}));},[]);
 const unread=NOTIFS.filter(n=>!n.read).length;const msgUnread=CONVOS.reduce((a,c)=>a+c.unread,0);
 
 function renderMain(){
+if(viewedPost)return <PostDetailScreen T={T} post={viewedPost} onBack={()=>setVP(null)} onToggle={onToggle} onBook={onBook} onUser={onUser} apiUser={apiUser}/>;
 if(activeBook){const bd=BOOK_DATA[activeBook.title]||activeBook;return <BookDetailScreen T={T} book={bd} onClose={()=>setAB(null)} onRead={()=>setRB(activeBook)} onReview={onReview}/>;}
 if(subView==="compose")return <ComposeScreen T={T} onClose={()=>{setSV(null);setCI({type:null,book:null});}} initialType={composeInit.type} initialBook={composeInit.book}/>;
-if(subView==="profile")return <ProfileScreen T={T} apiUser={apiUser}/>;
-if(subView==="user"&&viewedUser)return <ProfileScreen key={viewedUser.id} T={T} user={viewedUser} apiUser={apiUser}/>;
+if(subView==="profile")return <ProfileScreen T={T} apiUser={apiUser} onPost={onPost}/>;
+if(subView==="user"&&viewedUser)return <ProfileScreen key={viewedUser.id} T={T} user={viewedUser} apiUser={apiUser} onPost={onPost}/>;
 if(subView==="messages")return <MessagesScreen T={T}/>;
 if(subView==="notifications")return <NotifsScreen T={T}/>;
 if(subView==="clubs")return <ClubsScreen T={T}/>;
 if(subView==="challenges")return <ChallengesScreen T={T}/>;
 if(subView==="settings")return <SettingsScreen T={T} tid={tid} setTid={setTid} apiUser={apiUser} setApiUser={setApiUser} onSignOut={()=>{API.clearToken();setApiUser(null);setSV(null);}}/>;
-if(tab==="feed")return <FeedScreen T={T} feed={feed} onToggle={onToggle} onBook={onBook} onUser={onUser} searchQ={searchQ} loadMore={()=>loadFeed(feedCursor,true)} onRefresh={()=>loadFeed(null,false)} feedLoading={feedLoading} hasMoreFeed={hasMoreFeed}/>;
+if(tab==="feed")return <FeedScreen T={T} feed={feed} onToggle={onToggle} onBook={onBook} onUser={onUser} onPost={onPost} searchQ={searchQ} loadMore={()=>loadFeed(feedCursor,true)} onRefresh={()=>loadFeed(null,false)} feedLoading={feedLoading} hasMoreFeed={hasMoreFeed}/>;
 if(tab==="explore")return <ExploreScreen T={T} onBook={onBook}/>;
 if(tab==="shelf")return <ShelfScreen T={T} onBook={onBook}/>;
-if(tab==="profile")return <ProfileScreen key={"me-"+(apiUser?.id||"")} T={T} apiUser={apiUser}/>;
+if(tab==="profile")return <ProfileScreen key={"me-"+(apiUser?.id||"")} T={T} apiUser={apiUser} onPost={onPost}/>;
 return null;}
 
 // Show auth screen when not logged in (optional — shows mock data without auth)
@@ -621,7 +741,7 @@ return <div style={{minHeight:"100vh",background:T.bg,color:T.tx,paddingBottom:7
 
 {/* MOBILE HEADER */}
 <header className="mh" style={{position:"sticky",top:0,zIndex:100,background:`${T.bg}EC`,backdropFilter:"blur(20px) saturate(1.3)",borderBottom:`1px solid ${T.bdr}`,padding:"0 16px",height:52,display:"flex",alignItems:"center",gap:10}}>
-{(subView||activeBook)?<button className="tb" onClick={()=>{setSV(null);setAB(null);setVU(null);}} style={{fontFamily:T.ui,fontSize:14,color:T.tx3,background:"none",border:"none",cursor:"pointer",minWidth:36,minHeight:36}}>←</button>:<span style={{fontFamily:T.hd,fontSize:22,fontWeight:700,color:T.tx,letterSpacing:"-.02em",flexShrink:0}}>Pr<span style={{color:T.acc}}>é</span>cis</span>}
+{(subView||activeBook||viewedPost)?<button className="tb" onClick={()=>{if(viewedPost){setVP(null);}else{setSV(null);setAB(null);setVU(null);}}} style={{fontFamily:T.ui,fontSize:14,color:T.tx3,background:"none",border:"none",cursor:"pointer",minWidth:36,minHeight:36}}>←</button>:<span style={{fontFamily:T.hd,fontSize:22,fontWeight:700,color:T.tx,letterSpacing:"-.02em",flexShrink:0}}>Pr<span style={{color:T.acc}}>é</span>cis</span>}
 <div style={{flex:1}}/>
 {searchOpen&&<div style={{flex:1,position:"relative",animation:"fi .15s ease"}}><input autoFocus value={searchQ} onChange={e=>setSearchQ(e.target.value)} placeholder="Search…" style={{width:"100%",padding:"8px 12px 8px 30px",borderRadius:8,background:T.bg3,border:`1px solid ${T.bdrA}`,fontFamily:T.ui,fontSize:13,color:T.tx,outline:"none"}}/><span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",fontSize:13,color:T.tx4,pointerEvents:"none"}}>⌕</span></div>}
 <button className="tb" onClick={()=>{setSO(!searchOpen);if(searchOpen)setSearchQ("");}} style={{background:"none",border:"none",fontSize:18,color:searchOpen?T.acc:T.tx3,cursor:"pointer",padding:4,minWidth:36,minHeight:36,display:"flex",alignItems:"center",justifyContent:"center"}}>{searchOpen?"✕":"⌕"}</button>

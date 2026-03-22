@@ -23,6 +23,8 @@ model User {
   followers    Follow[]      @relation("following")
   following    Follow[]      @relation("follower")
   preferences  UserPreference?
+  comments     Comment[]
+  commentLikes CommentLike[]
 
   @@index([createdAt])
 }
@@ -51,6 +53,7 @@ model Post {
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   book         Book?         @relation(fields: [bookId], references: [id])
   interactions Interaction[]
+  comments     Comment[]
 
   @@index([userId])
   @@index([createdAt])
@@ -88,6 +91,37 @@ model Follow {
   @@unique([followerId, followingId])
   @@index([followerId])
   @@index([followingId])
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  postId    String
+  userId    String
+  parentId  String?
+  content   String
+  createdAt DateTime @default(now())
+
+  post    Post        @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent  Comment?    @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies Comment[]   @relation("CommentReplies")
+  likes   CommentLike[]
+
+  @@index([postId])
+  @@index([userId])
+  @@index([parentId])
+}
+
+model CommentLike {
+  commentId String
+  userId    String
+
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([commentId, userId])
+  @@index([commentId])
+  @@index([userId])
 }
 
 // Denormalized preference vector for fast feed scoring
