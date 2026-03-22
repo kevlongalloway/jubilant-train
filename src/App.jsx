@@ -192,22 +192,67 @@ return <div style={{animation:"en .35s ease both"}}>
 </Sec></div>;}
 
 // ─── COMPOSE ─────────────────────────────────────────────────
-function ComposeScreen({T,onClose}){
-const[type,setType]=useState(null);const[title,setTitle]=useState("");const[body,setBody]=useState("");const[published,setPub]=useState(false);
+function ComposeScreen({T,onClose,initialType=null,initialBook=null}){
+const[type,setType]=useState(initialType);
+const[book,setBook]=useState(initialBook);
+const[bookQ,setBookQ]=useState("");
+const[title,setTitle]=useState("");
+const[body,setBody]=useState("");
+const[published,setPub]=useState(false);
 const types=[{id:"original",label:"Original Work",desc:"Fiction, poetry, essays",icon:"✎"},{id:"review",label:"Review",desc:"Your take on a book",icon:"◈"},{id:"recommendation",label:"Recommendation",desc:"Share a must-read",icon:"⬨"},{id:"spoiler",label:"Spoiler Zone",desc:"Discuss freely with warnings",icon:"⚠"}];
+const needsBook=type==="review"||type==="recommendation"||type==="spoiler";
+const allBooks=Object.values(BOOK_DATA).concat(MY_BOOKS.filter(b=>!BOOK_DATA[b.title]).map(b=>({...b,cc:null})));
+const bookResults=bookQ.trim()?allBooks.filter(b=>(b.title||"").toLowerCase().includes(bookQ.toLowerCase())||(b.author||"").toLowerCase().includes(bookQ.toLowerCase())):allBooks;
+
 if(published)return <div style={{animation:"en .3s ease both",textAlign:"center",padding:"60px 16px"}}><div style={{fontSize:48,marginBottom:16}}>✓</div><div style={{fontFamily:T.hd,fontSize:22,fontWeight:700,color:T.tx,marginBottom:8}}>Published!</div><div style={{fontFamily:T.bd,fontSize:13,color:T.tx3,marginBottom:20}}>Your post is live. +5 Ink earned.</div><button className="tb" onClick={onClose} style={{padding:"12px 24px",borderRadius:10,border:"none",background:T.acc,color:"#fff",fontFamily:T.ui,fontSize:13,fontWeight:700,cursor:"pointer",minHeight:44}}>Back to Feed</button></div>;
+
 if(!type)return <div style={{animation:"en .3s ease both"}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}><h2 style={{fontFamily:T.hd,fontSize:22,fontWeight:700,color:T.tx}}>New Post</h2><button className="tb" onClick={onClose} style={{fontFamily:T.ui,fontSize:13,color:T.tx3,background:"none",border:"none",cursor:"pointer",minHeight:40}}>✕</button></div><div style={{display:"flex",flexDirection:"column",gap:10}}>{types.map(t=><button key={t.id} className="tb" onClick={()=>setType(t.id)} style={{display:"flex",alignItems:"center",gap:14,padding:"18px 16px",borderRadius:14,background:T.sf,border:`1px solid ${T.bdr}`,cursor:"pointer",textAlign:"left",minHeight:60}}><span style={{fontSize:24,width:40,textAlign:"center"}}>{t.icon}</span><div><div style={{fontFamily:T.ui,fontSize:14,fontWeight:700,color:T.tx}}>{t.label}</div><div style={{fontFamily:T.ui,fontSize:11,color:T.tx3}}>{t.desc}</div></div></button>)}</div></div>;
-return <div style={{animation:"en .3s ease both"}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}><div style={{display:"flex",alignItems:"center",gap:8}}><button className="tb" onClick={()=>setType(null)} style={{fontFamily:T.ui,fontSize:12,color:T.tx3,background:"none",border:"none",cursor:"pointer",minHeight:40}}>← Back</button><TT T={T} type={type}/></div><button className="tb" onClick={()=>setPub(true)} disabled={!body.trim()} style={{padding:"8px 20px",borderRadius:8,border:"none",background:body.trim()?T.acc:`${T.tx4}20`,color:body.trim()?"#fff":T.tx4,fontFamily:T.ui,fontSize:12,fontWeight:700,cursor:body.trim()?"pointer":"default",minHeight:40}}>Publish</button></div>
+
+if(needsBook&&!book)return <div style={{animation:"en .3s ease both"}}>
+<div style={{display:"flex",alignItems:"center",gap:10,marginBottom:20}}>
+<button className="tb" onClick={()=>initialType?onClose():setType(null)} style={{fontFamily:T.ui,fontSize:12,color:T.tx3,background:"none",border:"none",cursor:"pointer",minHeight:40}}>← Back</button>
+<div style={{flex:1}}><div style={{fontFamily:T.hd,fontSize:18,fontWeight:700,color:T.tx}}>Attach a Book</div><div style={{fontFamily:T.bd,fontSize:11,color:T.tx3,fontStyle:"italic",marginTop:1}}>Search for the book you're writing about</div></div>
+<TT T={T} type={type}/>
+</div>
+<div style={{position:"relative",marginBottom:14}}>
+<input autoFocus value={bookQ} onChange={e=>setBookQ(e.target.value)} placeholder="Search by title or author…" style={{width:"100%",padding:"12px 14px 12px 36px",borderRadius:10,background:T.bg2,border:`1px solid ${bookQ?T.bdrA:T.bdr}`,fontFamily:T.ui,fontSize:13,color:T.tx,outline:"none"}}/>
+<span style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",fontSize:14,color:T.tx4,pointerEvents:"none"}}>⌕</span>
+</div>
+<div style={{display:"flex",flexDirection:"column",gap:8,maxHeight:"55vh",overflowY:"auto"}}>
+{bookResults.map((b,i)=><button key={i} className="tb" onClick={()=>setBook({title:b.title,author:b.author,cc:b.cc||null})} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 14px",borderRadius:12,background:T.sf,border:`1px solid ${T.bdr}`,cursor:"pointer",textAlign:"left",width:"100%",minHeight:56}}>
+<div style={{width:30,height:44,borderRadius:"2px 4px 4px 2px",background:`linear-gradient(145deg,${b.cc||T.acc}CC,${b.cc||T.acc||T.acc}60)`,boxShadow:"2px 0 6px rgba(0,0,0,.25)",flexShrink:0}}/>
+<div style={{flex:1,minWidth:0}}><div style={{fontFamily:T.hd,fontSize:14,fontWeight:700,color:T.tx,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{b.title}</div><div style={{fontFamily:T.bd,fontSize:11,color:T.tx3,fontStyle:"italic",marginTop:1}}>{b.author}</div>{b.genres&&<div style={{fontFamily:T.ui,fontSize:9,color:T.tx4,marginTop:3}}>{b.genres.slice(0,2).join(" · ")}</div>}</div>
+<span style={{fontFamily:T.ui,fontSize:11,color:T.acc,flexShrink:0}}>Select →</span>
+</button>)}
+{bookResults.length===0&&<div style={{textAlign:"center",padding:"32px 16px",fontFamily:T.bd,fontSize:13,color:T.tx3,fontStyle:"italic"}}>No books found for "{bookQ}"</div>}
+</div>
+<button className="tb" onClick={()=>setBook({title:"",author:"",cc:null})} style={{width:"100%",marginTop:14,padding:"12px 0",borderRadius:10,border:`1px solid ${T.bdr}`,background:"transparent",fontFamily:T.ui,fontSize:12,fontWeight:600,color:T.tx4,cursor:"pointer"}}>Skip — write without attaching a book</button>
+</div>;
+
+return <div style={{animation:"en .3s ease both"}}>
+<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+<div style={{display:"flex",alignItems:"center",gap:8}}>
+<button className="tb" onClick={()=>initialBook?onClose():setBook(null)} style={{fontFamily:T.ui,fontSize:12,color:T.tx3,background:"none",border:"none",cursor:"pointer",minHeight:40}}>← Back</button>
+<TT T={T} type={type}/>
+</div>
+<button className="tb" onClick={()=>setPub(true)} disabled={!body.trim()} style={{padding:"8px 20px",borderRadius:8,border:"none",background:body.trim()?T.acc:`${T.tx4}20`,color:body.trim()?"#fff":T.tx4,fontFamily:T.ui,fontSize:12,fontWeight:700,cursor:body.trim()?"pointer":"default",minHeight:40}}>Publish</button>
+</div>
+{book?.title&&<div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:10,background:T.bg2,border:`1px solid ${T.bdrA}`,marginBottom:14}}>
+<div style={{width:24,height:36,borderRadius:"2px 3px 3px 2px",flexShrink:0,background:`linear-gradient(140deg,${book.cc||T.acc}90,${book.cc||T.acc}50)`,boxShadow:"1px 0 4px rgba(0,0,0,.2)"}}/>
+<div style={{flex:1,minWidth:0}}><div style={{fontFamily:T.ui,fontSize:12,fontWeight:700,color:T.tx}}>{book.title}</div><div style={{fontFamily:T.ui,fontSize:10,color:T.tx3}}>{book.author}</div></div>
+<button className="tb" onClick={()=>setBook(null)} style={{background:"none",border:"none",color:T.tx4,cursor:"pointer",fontSize:16,minWidth:28,minHeight:28,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+</div>}
 {(type==="original"||type==="review"||type==="spoiler")&&<input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Title…" style={{width:"100%",padding:"12px 0",borderRadius:0,background:"transparent",border:"none",borderBottom:`1px solid ${T.bdr}`,fontFamily:T.hd,fontSize:20,fontWeight:600,color:T.tx,outline:"none",marginBottom:12}}/>}
 <textarea value={body} onChange={e=>setBody(e.target.value)} placeholder={type==="original"?"Start writing…":"Share your thoughts…"} rows={8} style={{width:"100%",padding:"12px 0",background:"transparent",border:"none",fontFamily:T.bd,fontSize:14.5,lineHeight:1.7,color:T.tx2,outline:"none",resize:"vertical",minHeight:200}}/>
-<div style={{display:"flex",alignItems:"center",gap:12,marginTop:16,paddingTop:12,borderTop:`1px solid ${T.bdr}`}}><span style={{fontFamily:T.mn,fontSize:10,color:T.tx4}}>{body.split(/\s+/).filter(Boolean).length} words</span>{type==="original"&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:3,background:`${T.gn}0D`,color:T.gn,fontFamily:T.ui,fontWeight:700}}>✓ These words are mine</span>}</div></div>;}
+<div style={{display:"flex",alignItems:"center",gap:12,marginTop:16,paddingTop:12,borderTop:`1px solid ${T.bdr}`}}><span style={{fontFamily:T.mn,fontSize:10,color:T.tx4}}>{body.split(/\s+/).filter(Boolean).length} words</span>{type==="original"&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:3,background:`${T.gn}0D`,color:T.gn,fontFamily:T.ui,fontWeight:700}}>✓ These words are mine</span>}</div>
+</div>;}
 
 // ─── THEME PICKER ────────────────────────────────────────────
 function TP({T,tid,setTid}){const[open,setOpen]=useState(false);const ref=useRef(null);useEffect(()=>{if(!open)return;const h=e=>{if(ref.current&&!ref.current.contains(e.target))setOpen(false);};document.addEventListener("mousedown",h);document.addEventListener("touchstart",h);return()=>{document.removeEventListener("mousedown",h);document.removeEventListener("touchstart",h);};},[open]);
 return <div ref={ref} style={{position:"relative"}}><button className="tb" onClick={()=>setOpen(!open)} style={{width:34,height:34,borderRadius:"50%",border:`1.5px solid ${T.bdr}`,background:T.bg2,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13}}>{THEMES[tid].icon}</button>{open&&<div style={{position:"absolute",top:"calc(100% + 8px)",right:0,background:T.sf,border:`1px solid ${T.bdrA}`,borderRadius:14,padding:6,minWidth:210,boxShadow:T.shL,zIndex:200,animation:"si .12s ease"}}><div style={{padding:"6px 12px 8px",fontFamily:T.ui,fontSize:9,fontWeight:700,color:T.tx4,letterSpacing:".08em",textTransform:"uppercase"}}>Reading Theme</div>{Object.values(THEMES).map(t=>{const a=t.id===tid;return <button key={t.id} className="tb" onClick={()=>{setTid(t.id);setOpen(false);}} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:10,border:"none",cursor:"pointer",width:"100%",minHeight:44,background:a?`${t.acc}0D`:"transparent"}}><div style={{display:"flex",gap:3}}>{[t.bg,t.sf,t.tx,t.acc,t.gold].map((c,i)=><div key={i} style={{width:10,height:10,borderRadius:"50%",background:c,border:"1px solid rgba(128,128,128,.12)"}}/>)}</div><span style={{fontFamily:T.ui,fontSize:12,fontWeight:a?700:500,color:a?t.acc:T.tx2}}>{t.name}</span>{a&&<span style={{marginLeft:"auto",fontSize:10,color:t.acc}}>✓</span>}</button>})}</div>}</div>;}
 
 // ─── BOOK DETAIL ─────────────────────────────────────────────
-function BookDetailScreen({T,book,onClose,onRead}){
+function BookDetailScreen({T,book,onClose,onRead,onReview}){
 const[shelved,setShelved]=useState(false);
 const b=book||{};
 const stars=Math.round(b.rating||0);
@@ -244,12 +289,13 @@ return <div style={{animation:"en .3s ease both",paddingBottom:32}}>
 <div style={{fontFamily:T.ui,fontSize:10,fontWeight:700,color:T.tx4,letterSpacing:".08em",textTransform:"uppercase",marginBottom:8}}>About</div>
 <div style={{fontFamily:T.bd,fontSize:13.5,lineHeight:1.8,color:T.tx2,fontWeight:300}}>{b.description}</div>
 </Card>}
-<div style={{display:"flex",gap:10}}>
+<div style={{display:"flex",gap:10,marginBottom:10}}>
 {b.pages?.length>0
 ?<button className="tb" onClick={onRead} style={{flex:1,padding:"14px 0",borderRadius:12,border:"none",background:T.acc,color:"#fff",fontFamily:T.ui,fontSize:13,fontWeight:700,cursor:"pointer",minHeight:50,boxShadow:`0 4px 16px ${T.acc}35`}}>Read Now</button>
 :<div style={{flex:1,padding:"14px 0",borderRadius:12,border:`1px dashed ${T.bdrA}`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:T.ui,fontSize:12,color:T.tx4}}>Preview unavailable</div>}
-<button className="tb" onClick={()=>setShelved(s=>!s)} style={{padding:"14px 20px",borderRadius:12,border:`1px solid ${shelved?`${T.gold}30`:T.bdr}`,background:shelved?`${T.gold}08`:"transparent",fontFamily:T.ui,fontSize:13,fontWeight:600,color:shelved?T.gold:T.tx3,cursor:"pointer",minHeight:50,whiteSpace:"nowrap"}}>{shelved?"✓ Shelved":"+ Shelf"}</button>
+<button className="tb" onClick={()=>setShelved(s=>!s)} style={{padding:"14px 16px",borderRadius:12,border:`1px solid ${shelved?`${T.gold}30`:T.bdr}`,background:shelved?`${T.gold}08`:"transparent",fontFamily:T.ui,fontSize:13,fontWeight:600,color:shelved?T.gold:T.tx3,cursor:"pointer",minHeight:50,whiteSpace:"nowrap"}}>{shelved?"✓ Shelved":"+ Shelf"}</button>
 </div>
+<button className="tb" onClick={()=>onReview?.({title:b.title,author:b.author,cc:b.cc})} style={{width:"100%",padding:"14px 0",borderRadius:12,border:`1px solid ${T.bdrA}`,background:"transparent",fontFamily:T.ui,fontSize:13,fontWeight:600,color:T.tx2,cursor:"pointer",minHeight:50,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}><span style={{fontSize:14}}>◈</span> Write a Review</button>
 </div>;}
 
 // ─── READER ──────────────────────────────────────────────────
@@ -291,14 +337,16 @@ const TABS=[{id:"feed",label:"Feed",icon:"⊞"},{id:"explore",label:"Explore",ic
 
 export default function PrecisApp(){
 const{T,tid,setTid}=useTheme();const[tab,setTab]=useState("feed");const[feed,setFeed]=useState(FI);const[searchQ,setSearchQ]=useState("");const[searchOpen,setSO]=useState(false);const[subView,setSV]=useState(null);const[activeBook,setAB]=useState(null);const[readerBook,setRB]=useState(null);
+const[composeInit,setCI]=useState({type:null,book:null});
 const onBook=useCallback((title,author)=>{setAB({title,author});setSV(null);},[]);
+const onReview=useCallback((book)=>{setCI({type:"review",book});setSV("compose");setAB(null);},[]);
 
 const onToggle=useCallback((id,type)=>{setFeed(prev=>prev.map(item=>{if(item.id!==id)return item;if(type==="like")return{...item,isLiked:!item.isLiked,likes:item.likes+(item.isLiked?-1:1)};if(type==="shelf")return{...item,isShelved:!item.isShelved,shelved:item.shelved+(item.isShelved?-1:1)};if(type==="repost")return{...item,isReposted:!item.isReposted,reposts:item.reposts+(item.isReposted?-1:1)};return item;}));},[]);
 const unread=NOTIFS.filter(n=>!n.read).length;const msgUnread=CONVOS.reduce((a,c)=>a+c.unread,0);
 
 function renderMain(){
-if(activeBook){const bd=BOOK_DATA[activeBook.title]||activeBook;return <BookDetailScreen T={T} book={bd} onClose={()=>setAB(null)} onRead={()=>setRB(activeBook)}/>;}
-if(subView==="compose")return <ComposeScreen T={T} onClose={()=>setSV(null)}/>;
+if(activeBook){const bd=BOOK_DATA[activeBook.title]||activeBook;return <BookDetailScreen T={T} book={bd} onClose={()=>setAB(null)} onRead={()=>setRB(activeBook)} onReview={onReview}/>;}
+if(subView==="compose")return <ComposeScreen T={T} onClose={()=>{setSV(null);setCI({type:null,book:null});}} initialType={composeInit.type} initialBook={composeInit.book}/>;
 if(subView==="profile")return <ProfileScreen T={T}/>;
 if(subView==="messages")return <MessagesScreen T={T}/>;
 if(subView==="notifications")return <NotifsScreen T={T}/>;
@@ -336,7 +384,7 @@ return <div style={{minHeight:"100vh",background:T.bg,color:T.tx,paddingBottom:7
 <div style={{display:"flex",gap:1,marginLeft:8}}>{[{id:"clubs",l:"Clubs"},{id:"challenges",l:"Challenges"}].map(n=><button key={n.id} className="tb" onClick={()=>setSV(n.id)} style={{padding:"8px 12px",borderRadius:8,border:"none",fontFamily:T.ui,fontSize:12,fontWeight:subView===n.id?700:500,cursor:"pointer",background:subView===n.id?T.gs:"transparent",color:subView===n.id?T.gold:T.tx4}}>{n.l}</button>)}</div>
 <div style={{flex:1,maxWidth:240,margin:"0 20px",position:"relative"}}><input value={searchQ} onChange={e=>setSearchQ(e.target.value)} placeholder="Search…" style={{width:"100%",padding:"8px 14px 8px 32px",borderRadius:8,background:T.bg3,border:`1px solid ${searchQ?T.bdrA:T.bdr}`,fontFamily:T.ui,fontSize:12,color:T.tx,outline:"none"}}/><span style={{position:"absolute",left:11,top:"50%",transform:"translateY(-50%)",fontSize:13,color:T.tx4,pointerEvents:"none"}}>⌕</span></div>
 <div style={{flex:1}}/>
-<button className="tb" onClick={()=>setSV("compose")} style={{padding:"8px 20px",borderRadius:8,border:"none",background:T.acc,color:"#fff",fontFamily:T.ui,fontSize:12,fontWeight:700,cursor:"pointer",boxShadow:`0 2px 8px ${T.acc}30`,display:"flex",alignItems:"center",gap:5,marginRight:10}}>✎ Write</button>
+<button className="tb" onClick={()=>{setCI({type:null,book:null});setSV("compose");}} style={{padding:"8px 20px",borderRadius:8,border:"none",background:T.acc,color:"#fff",fontFamily:T.ui,fontSize:12,fontWeight:700,cursor:"pointer",boxShadow:`0 2px 8px ${T.acc}30`,display:"flex",alignItems:"center",gap:5,marginRight:10}}>✎ Write</button>
 <button className="tb" onClick={()=>setSV(sv=>sv==="notifications"?null:"notifications")} style={{background:"none",border:"none",fontSize:16,color:T.tx3,cursor:"pointer",padding:6,position:"relative"}}><Bell size={16}/>{unread>0&&<div style={{position:"absolute",top:0,right:0,width:14,height:14,borderRadius:"50%",background:T.acc,fontFamily:T.ui,fontSize:8,fontWeight:700,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}>{unread}</div>}</button>
 <button className="tb" onClick={()=>setSV(sv=>sv==="messages"?null:"messages")} style={{background:"none",border:"none",fontSize:16,color:T.tx3,cursor:"pointer",padding:6,marginRight:8,position:"relative"}}>✉{msgUnread>0&&<div style={{position:"absolute",top:0,right:0,width:14,height:14,borderRadius:"50%",background:T.acc,fontFamily:T.ui,fontSize:8,fontWeight:700,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}>{msgUnread}</div>}</button>
 <TP T={T} tid={tid} setTid={setTid}/>
@@ -354,6 +402,6 @@ return <div style={{minHeight:"100vh",background:T.bg,color:T.tx,paddingBottom:7
 {/* MOBILE BOTTOM BAR */}
 <nav className="bb" style={{position:"fixed",bottom:0,left:0,right:0,zIndex:100,background:`${T.bg}F2`,backdropFilter:"blur(20px) saturate(1.3)",borderTop:`1px solid ${T.bdr}`,display:"flex",alignItems:"stretch",height:60,paddingBottom:"env(safe-area-inset-bottom,0px)"}}>
 {TABS.map(t=>{const a=tab===t.id&&!subView;return <button key={t.id} className="tb" onClick={()=>{setTab(t.id);setSV(null);}} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,background:"none",border:"none",cursor:"pointer",color:a?T.gold:T.tx4,minHeight:48,position:"relative"}}>{a&&<div style={{position:"absolute",top:0,left:"50%",transform:"translateX(-50%)",width:20,height:2,borderRadius:1,background:T.gold}}/>}<span style={{fontSize:20,lineHeight:1}}>{t.icon}</span><span style={{fontFamily:T.ui,fontSize:9,fontWeight:a?700:500}}>{t.label}</span></button>})}
-<div onClick={()=>setSV("compose")} style={{position:"absolute",top:-22,left:"50%",transform:"translateX(-50%)",width:48,height:48,borderRadius:"50%",background:`linear-gradient(135deg,${T.acc},#9A4520)`,boxShadow:`0 4px 16px ${T.acc}50`,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",zIndex:10}}><span style={{fontSize:20,color:"#fff",marginTop:-1}}>✎</span></div>
+<div onClick={()=>{setCI({type:null,book:null});setSV("compose");}} style={{position:"absolute",top:-22,left:"50%",transform:"translateX(-50%)",width:48,height:48,borderRadius:"50%",background:`linear-gradient(135deg,${T.acc},#9A4520)`,boxShadow:`0 4px 16px ${T.acc}50`,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",zIndex:10}}><span style={{fontSize:20,color:"#fff",marginTop:-1}}>✎</span></div>
 </nav>
 </div>;}
