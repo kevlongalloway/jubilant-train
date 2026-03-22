@@ -464,6 +464,8 @@ export default function PrecisApp(){
 const{T,tid,setTid}=useTheme();const[tab,setTab]=useState("feed");const[feed,setFeed]=useState([]);
 // API integration state
 const[apiUser,setApiUser]=useState(()=>API.getStoredUser());
+// Verify stored session is still valid on startup (handles re-seed / token expiry)
+useEffect(()=>{if(apiUser){API.getMe().then(u=>{const fresh={...apiUser,...u};API.setStoredUser(fresh);setApiUser(fresh);}).catch(err=>{if(err?.status===401||err?.status===404){API.clearToken();setApiUser(null);}});}},[]);
 const[feedCursor,setFeedCursor]=useState(null);
 const[hasMoreFeed,setHasMoreFeed]=useState(true);
 const[feedLoading,setFeedLoading]=useState(false);
