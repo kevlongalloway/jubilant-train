@@ -385,7 +385,7 @@ return <div style={{minHeight:"100vh",background:T.bg,color:T.tx,display:"flex",
 </div>;}
 
 // ─── MAIN APP ────────────────────────────────────────────────
-const TABS=[{id:"feed",label:"Feed",icon:"⊞"},{id:"explore",label:"Explore",icon:"◎"},{id:"press",label:"Press",icon:"✎"},{id:"shelf",label:"Shelf",icon:"▤"},{id:"profile",label:"Profile",icon:null}];
+const TABS=[{id:"feed",label:"Feed",icon:"⊞"},{id:"explore",label:"Explore",icon:"◎"},{id:"shelf",label:"Shelf",icon:"▤"},{id:"profile",label:"Profile",icon:null}];
 
 export default function PrecisApp(){
 const{T,tid,setTid}=useTheme();const[tab,setTab]=useState("feed");const[feed,setFeed]=useState(FI);const[searchQ,setSearchQ]=useState("");const[searchOpen,setSO]=useState(false);const[subView,setSV]=useState(null);const[activeBook,setAB]=useState(null);const[readerBook,setRB]=useState(null);
@@ -406,8 +406,7 @@ if(subView==="clubs")return <ClubsScreen T={T}/>;
 if(subView==="challenges")return <ChallengesScreen T={T}/>;
 if(subView==="settings")return <SettingsScreen T={T} tid={tid} setTid={setTid}/>;
 if(tab==="feed")return <FeedScreen T={T} feed={feed} onToggle={onToggle} onBook={onBook} searchQ={searchQ}/>;
-if(tab==="explore")return <ExploreScreen key="explore" T={T} onBook={onBook}/>;
-if(tab==="press")return <ExploreScreen key="press" T={T} onBook={onBook} defaultSection="press"/>;
+if(tab==="explore")return <ExploreScreen T={T} onBook={onBook}/>;
 if(tab==="shelf")return <ShelfScreen T={T} onBook={onBook}/>;
 if(tab==="profile")return <ProfileScreen T={T}/>;
 return null;}
@@ -452,6 +451,11 @@ return <div style={{minHeight:"100vh",background:T.bg,color:T.tx,paddingBottom:7
 
 {/* MOBILE BOTTOM BAR */}
 <nav className="bb" style={{position:"fixed",bottom:0,left:0,right:0,zIndex:100,background:`${T.bg}F2`,backdropFilter:"blur(20px) saturate(1.3)",borderTop:`1px solid ${T.bdr}`,display:"flex",alignItems:"stretch",height:60,paddingBottom:"env(safe-area-inset-bottom,0px)"}}>
-{TABS.map(t=>{const a=tab===t.id&&!subView;return <button key={t.id} className="tb" onClick={()=>{setTab(t.id);setSV(null);}} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,background:"none",border:"none",cursor:"pointer",color:a?T.gold:T.tx4,minHeight:48,position:"relative"}}>{a&&<div style={{position:"absolute",top:0,left:"50%",transform:"translateX(-50%)",width:20,height:2,borderRadius:1,background:T.gold}}/>}{t.id==="profile"?<div style={{width:26,height:26,borderRadius:"50%",border:`2px solid ${a?T.gold:"transparent"}`,overflow:"hidden",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}><Av T={T} i={ME.in} ink={ME.ink} s={22}/></div>:<span style={{fontSize:20,lineHeight:1}}>{t.icon}</span>}<span style={{fontFamily:T.ui,fontSize:9,fontWeight:a?700:500}}>{t.label}</span></button>;})}
+{TABS.slice(0,2).map(t=>{const a=tab===t.id&&!subView;return <button key={t.id} className="tb" onClick={()=>{setTab(t.id);setSV(null);}} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,background:"none",border:"none",cursor:"pointer",color:a?T.gold:T.tx4,minHeight:48,position:"relative"}}>{a&&<div style={{position:"absolute",top:0,left:"50%",transform:"translateX(-50%)",width:20,height:2,borderRadius:1,background:T.gold}}/>}<span style={{fontSize:20,lineHeight:1}}>{t.icon}</span><span style={{fontFamily:T.ui,fontSize:9,fontWeight:a?700:500}}>{t.label}</span></button>;})}
+<div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"flex-end",paddingBottom:8,position:"relative"}}>
+<div onClick={()=>{setCI({type:null,book:null});setSV("compose");}} style={{position:"absolute",top:-22,width:52,height:52,borderRadius:"50%",background:`linear-gradient(135deg,${T.acc},#9A4520)`,boxShadow:`0 4px 16px ${T.acc}50`,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",zIndex:10}}><span style={{fontSize:22,color:"#fff",marginTop:-1}}>✎</span></div>
+<span style={{fontFamily:T.ui,fontSize:9,fontWeight:500,color:T.tx4,marginTop:2}}>Publish</span>
+</div>
+{TABS.slice(2).map(t=>{const a=tab===t.id&&!subView;return <button key={t.id} className="tb" onClick={()=>{setTab(t.id);setSV(null);}} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,background:"none",border:"none",cursor:"pointer",color:a?T.gold:T.tx4,minHeight:48,position:"relative"}}>{a&&<div style={{position:"absolute",top:0,left:"50%",transform:"translateX(-50%)",width:20,height:2,borderRadius:1,background:T.gold}}/>}{t.id==="profile"?<div style={{width:26,height:26,borderRadius:"50%",border:`2px solid ${a?T.gold:"transparent"}`,overflow:"hidden",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}><Av T={T} i={ME.in} ink={ME.ink} s={22}/></div>:<span style={{fontSize:20,lineHeight:1}}>{t.icon}</span>}<span style={{fontFamily:T.ui,fontSize:9,fontWeight:a?700:500}}>{t.label}</span></button>;})}
 </nav>
 </div>;}
