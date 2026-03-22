@@ -50,28 +50,32 @@ const BOOK_DATA={
 // ─── CSS ─────────────────────────────────────────────────────
 const gc=T=>`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,500;1,8..60,400&family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html,body{background:${T.bg}!important;overflow-x:hidden;-webkit-tap-highlight-color:transparent;touch-action:pan-x pan-y;overscroll-behavior:none;height:100%}body{touch-action:pan-x pan-y}::selection{background:${T.gold}30;color:${T.tx}}::-webkit-scrollbar{width:0;height:0}@keyframes en{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}@keyframes fi{from{opacity:0}to{opacity:1}}@keyframes si{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}@keyframes po{0%{transform:scale(1)}50%{transform:scale(1.25)}100%{transform:scale(1)}}@keyframes sk{0%{background-position:-400px 0}100%{background-position:calc(400px + 100%) 0}}@keyframes spin{to{transform:rotate(360deg)}}.tb{-webkit-tap-highlight-color:transparent;touch-action:manipulation}.tb:active{opacity:.7;transform:scale(.97)}.cl{transition:border-color .2s,box-shadow .15s}@media(min-width:768px){.mh{display:none!important}.dh{display:flex!important}.bb{display:none!important}.fw{padding-bottom:0!important;max-width:680px;margin:0 auto}.fs{display:grid!important;grid-template-columns:1fr 300px;gap:24px;max-width:1020px;margin:0 auto;align-items:start}.sd{display:flex!important}.cl:hover{border-color:${T.bdrA};box-shadow:${T.sh};transform:translateY(-1px)}}@media(max-width:767px){.dh{display:none!important}.sd{display:none!important}.fs{display:block!important}}@media(max-width:767px){.fw{padding-bottom:calc(60px + env(safe-area-inset-bottom))!important}}@media(display-mode:standalone){.mh{padding-top:env(safe-area-inset-top)!important;height:calc(52px + env(safe-area-inset-top))!important}}`;
 
-// ─── GOOGLE BOOKS SEARCH ─────────────────────────────────────
-// Phase 1: Google Books API (free) → Amazon link via ISBN-10 (=ASIN for most books)
-async function searchGoogleBooks(q,max=8){
+// ─── OPEN LIBRARY SEARCH ─────────────────────────────────────
+// Open Library API (free, no quota, no key) → Amazon link via ISBN-10 (=ASIN)
+async function searchOpenLibrary(q,max=8){
   try{
-    const r=await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=${max}&langRestrict=en&printType=books`);
+    const url=`https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&limit=${max}&fields=key,title,author_name,first_publish_year,subject,isbn,cover_i&lang=eng`;
+    const r=await fetch(url);
     if(!r.ok)return[];
     const d=await r.json();
-    return(d.items||[]).map(v=>{
-      const info=v.volumeInfo;
-      const isbn10=info.industryIdentifiers?.find(i=>i.type==="ISBN_10")?.identifier;
-      const isbn13=info.industryIdentifiers?.find(i=>i.type==="ISBN_13")?.identifier;
+    return(d.docs||[]).map(doc=>{
+      const isbns=doc.isbn||[];
+      const isbn10=isbns.find(i=>i.length===10)||null;
+      const isbn13=isbns.find(i=>i.length===13)||null;
       // ISBN-10 doubles as Amazon ASIN for print books → direct product page
       const amazonLink=isbn10
         ?`https://www.amazon.com/dp/${isbn10}`
-        :`https://www.amazon.com/s?k=${encodeURIComponent((info.title||"")+" "+(info.authors?.[0]||""))}`;
+        :`https://www.amazon.com/s?k=${encodeURIComponent((doc.title||"")+" "+(doc.author_name?.[0]||""))}`;
+      const thumbnail=doc.cover_i
+        ?`https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`
+        :null;
       return{
-        id:v.id,
-        title:info.title||"Untitled",
-        author:(info.authors||["Unknown"])[0],
-        thumbnail:info.imageLinks?.thumbnail?.replace("http://","https://"),
-        year:info.publishedDate?.slice(0,4)||null,
-        genres:(info.categories||[]).slice(0,2),
+        id:doc.key||`ol-${Math.random()}`,
+        title:doc.title||"Untitled",
+        author:(doc.author_name||["Unknown"])[0],
+        thumbnail,
+        year:doc.first_publish_year?String(doc.first_publish_year):null,
+        genres:(doc.subject||[]).slice(0,2),
         isbn10,isbn13,
         amazonLink,
       };
@@ -553,14 +557,14 @@ useEffect(()=>{
   return()=>{document.body.style.overflow=prev;};
 },[]);
 
-// Debounced search — platform books/posts/users + Google Books in parallel
+// Debounced search — platform books/posts/users + Open Library in parallel
 useEffect(()=>{
   if(!q.trim()){setGBooks([]);setPlatBooks([]);setPlatPosts([]);setPlatUsers([]);setLoading(false);return;}
   setLoading(true);
   const t=setTimeout(async()=>{
     try{
       const[gb,pb,pp,pu]=await Promise.allSettled([
-        searchGoogleBooks(q),
+        searchOpenLibrary(q),
         API.getBooks({q,limit:5}),
         API.getPosts({q,limit:5}),
         API.searchUsers(q,5),
@@ -608,7 +612,7 @@ return <div style={{position:"fixed",inset:0,zIndex:300,display:"flex",flexDirec
     {!q.trim()&&<div style={{padding:"40px 0",textAlign:"center"}}>
       <div style={{fontSize:36,marginBottom:10,opacity:.5}}>⌕</div>
       <div style={{fontFamily:T.hd,fontSize:16,fontWeight:600,color:T.tx,marginBottom:6}}>Search everything</div>
-      <div style={{fontFamily:T.bd,fontSize:13,color:T.tx3,fontStyle:"italic",lineHeight:1.6}}>Find books, authors, posts, and readers on Précis.<br/>Also searches Google Books for titles and authors.</div>
+      <div style={{fontFamily:T.bd,fontSize:13,color:T.tx3,fontStyle:"italic",lineHeight:1.6}}>Find books, authors, posts, and readers on Précis.<br/>Also searches Open Library for titles and authors.</div>
     </div>}
 
     {/* Loading skeleton */}
@@ -672,10 +676,10 @@ return <div style={{position:"fixed",inset:0,zIndex:300,display:"flex",flexDirec
         </button>)}
       </>}
 
-      {/* Divider between platform and Google Books */}
+      {/* Divider between platform and Open Library */}
       {hasPlatform&&gBooks.length>0&&<div style={{display:"flex",alignItems:"center",gap:10,padding:"16px 0 4px"}}>
         <div style={{flex:1,height:1,background:T.bdr}}/>
-        <span style={{fontFamily:T.ui,fontSize:9,color:T.tx4,letterSpacing:".08em",textTransform:"uppercase",whiteSpace:"nowrap"}}>Also on Google Books</span>
+        <span style={{fontFamily:T.ui,fontSize:9,color:T.tx4,letterSpacing:".08em",textTransform:"uppercase",whiteSpace:"nowrap"}}>Also on Open Library</span>
         <div style={{flex:1,height:1,background:T.bdr}}/>
       </div>}
 
@@ -717,11 +721,11 @@ const types=[{id:"original",label:"Original Work",desc:"Fiction, poetry, essays"
 const needsBook=type==="review"||type==="recommendation"||type==="spoiler";
 const allBooks=Object.values(BOOK_DATA).concat(MY_BOOKS.filter(b=>!BOOK_DATA[b.title]).map(b=>({...b,cc:null})));
 const[gBooks,setGB]=useState([]);
-// Augment local search with Google Books API results
+// Augment local search with Open Library API results
 useEffect(()=>{
   if(!bookQ.trim()){setGB([]);return;}
   const t=setTimeout(async()=>{
-    const r=await searchGoogleBooks(bookQ,6);
+    const r=await searchOpenLibrary(bookQ,6);
     setGB(r.filter(b=>!allBooks.some(lb=>lb.title.toLowerCase()===b.title.toLowerCase())));
   },400);
   return()=>clearTimeout(t);
