@@ -88,13 +88,27 @@ const[newComment,setNewComment]=useState("");
 const[replyTo,setReplyTo]=useState(null);// {id,parentId,username}
 const[posting,setPosting]=useState(false);
 const[expanded,setExpanded]=useState(new Set());
+const[barVisible,setBarVisible]=useState(false);// true when post has scrolled above viewport
 const inputRef=useRef(null);
+const postRef=useRef(null);
 
 useEffect(()=>{
   API.getComments(post.id).then(data=>{
     setComments(data.map(mapC));
   }).catch(()=>setComments([]));
 },[post.id]);
+
+// Show fixed comment bar only after the post card scrolls above the viewport top
+useEffect(()=>{
+  const el=postRef.current;
+  if(!el)return;
+  const obs=new IntersectionObserver(([e])=>{
+    // isIntersecting=false AND top<0 means it left through the top
+    setBarVisible(!e.isIntersecting&&e.boundingClientRect.top<0);
+  },{threshold:0});
+  obs.observe(el);
+  return()=>obs.disconnect();
+},[]);
 
 const mapC=(c)=>({
   id:c.id,content:c.content,
@@ -169,10 +183,10 @@ function CRow({c,isReply=false,parentId=null}){return(
 </div>
 );}
 
-return <div style={{animation:"en .3s ease both",paddingBottom:80}}>
+return <div style={{animation:"en .3s ease both",paddingBottom:barVisible?72:16}}>
 <button className="tb" onClick={onBack} style={{fontFamily:T.ui,fontSize:14,color:T.tx3,background:"none",border:"none",cursor:"pointer",marginBottom:14,minHeight:40,display:"flex",alignItems:"center",gap:6}}>← Back</button>
-{/* Full post */}
-<FC T={T} item={item} onToggle={localToggle} onBook={onBook} onUser={onUser}/>
+{/* Full post — observed to detect when it leaves the top of the viewport */}
+<div ref={postRef}><FC T={T} item={item} onToggle={localToggle} onBook={onBook} onUser={onUser}/></div>
 {/* Comments section */}
 <div style={{marginTop:16,paddingTop:16,borderTop:`1px solid ${T.bdr}`}}>
 <div style={{fontFamily:T.ui,fontSize:13,fontWeight:700,color:T.tx,marginBottom:16}}>
@@ -180,8 +194,8 @@ return <div style={{animation:"en .3s ease both",paddingBottom:80}}>
 </div>
 {comments===null?<Spin T={T} mt={20} mb={20}/>:comments.length===0?<div style={{fontFamily:T.bd,fontSize:13,color:T.tx3,fontStyle:"italic",padding:"8px 0 20px"}}>Be the first to comment.</div>:comments.map(c=><CRow key={c.id} c={c}/>)}
 </div>
-{/* Sticky comment input */}
-<div style={{position:"fixed",bottom:"calc(60px + env(safe-area-inset-bottom))",left:0,right:0,background:`${T.bg}EE`,backdropFilter:"blur(16px)",borderTop:`1px solid ${T.bdr}`,padding:"10px 16px",zIndex:90}}>
+{/* Fixed comment bar — appears only after the post has scrolled off the top (Facebook-style) */}
+{barVisible&&<div style={{position:"fixed",bottom:0,left:0,right:0,background:`${T.bg}F2`,backdropFilter:"blur(20px) saturate(1.3)",borderTop:`1px solid ${T.bdr}`,padding:"10px 16px 10px",paddingBottom:"calc(10px + env(safe-area-inset-bottom))",zIndex:90,animation:"fi .15s ease"}}>
   {replyTo&&<div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6,fontFamily:T.ui,fontSize:11,color:T.tx4}}>
     <span>Replying to <strong style={{color:T.tx}}>@{replyTo.username}</strong></span>
     <button className="tb" onClick={()=>{setReplyTo(null);setNewComment("");}} style={{background:"none",border:"none",color:T.tx4,cursor:"pointer",fontSize:14,padding:0,minWidth:20,minHeight:20,marginLeft:4}}>✕</button>
@@ -193,7 +207,7 @@ return <div style={{animation:"en .3s ease both",paddingBottom:80}}>
       {posting?"…":"Post"}
     </button>
   </div>
-</div>
+</div>}
 </div>;}
 
 // ─── SKELETON ────────────────────────────────────────────────
@@ -736,7 +750,7 @@ return null;}
 // Show auth screen when not logged in (optional — shows mock data without auth)
 if(!apiUser){return <div style={{minHeight:"100vh",background:T.bg,color:T.tx}}><style>{gc(T)}</style><AuthScreen T={T} onAuth={(user)=>{setApiUser(user);setFeed([]);}}/></div>;}
 if(readerBook){const bd=BOOK_DATA[readerBook.title]||readerBook;return <div style={{minHeight:"100vh",background:T.bg,color:T.tx}}><style>{gc(T)}</style><ReaderScreen T={T} book={bd} onClose={()=>setRB(null)}/></div>;}
-return <div style={{minHeight:"100vh",background:T.bg,color:T.tx,paddingBottom:72}}>
+return <div style={{minHeight:"100vh",background:T.bg,color:T.tx,paddingBottom:viewedPost?0:72}}>
 <style>{gc(T)}</style>
 
 {/* MOBILE HEADER */}
@@ -773,13 +787,13 @@ return <div style={{minHeight:"100vh",background:T.bg,color:T.tx,paddingBottom:7
 <div style={{padding:"10px 0",fontFamily:T.ui,fontSize:10,color:T.tx4,lineHeight:1.8}}><div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:4}}>{["About","TOS","Privacy"].map(l=><span key={l} style={{cursor:"pointer"}}>{l}</span>)}</div>© 2026 Précis Technologies, Inc.</div>
 </aside>}</div></div>
 
-{/* MOBILE BOTTOM BAR */}
-<nav className="bb" style={{position:"fixed",bottom:0,left:0,right:0,zIndex:100,background:`${T.bg}F2`,backdropFilter:"blur(20px) saturate(1.3)",borderTop:`1px solid ${T.bdr}`,display:"flex",alignItems:"stretch",height:"calc(60px + env(safe-area-inset-bottom))",paddingBottom:"env(safe-area-inset-bottom)"}}>
+{/* MOBILE BOTTOM BAR — hidden while reading a post detail */}
+{!viewedPost&&<nav className="bb" style={{position:"fixed",bottom:0,left:0,right:0,zIndex:100,background:`${T.bg}F2`,backdropFilter:"blur(20px) saturate(1.3)",borderTop:`1px solid ${T.bdr}`,display:"flex",alignItems:"stretch",height:"calc(60px + env(safe-area-inset-bottom))",paddingBottom:"env(safe-area-inset-bottom)"}}>
 {TABS.slice(0,2).map(t=>{const a=tab===t.id&&!subView;return <button key={t.id} className="tb" onClick={()=>{setTab(t.id);setSV(null);}} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,background:"none",border:"none",cursor:"pointer",color:a?T.gold:T.tx4,minHeight:48,position:"relative"}}>{a&&<div style={{position:"absolute",top:0,left:"50%",transform:"translateX(-50%)",width:20,height:2,borderRadius:1,background:T.gold}}/>}<span style={{fontSize:20,lineHeight:1}}>{t.icon}</span><span style={{fontFamily:T.ui,fontSize:9,fontWeight:a?700:500}}>{t.label}</span></button>;})}
 <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"flex-end",paddingBottom:8,position:"relative"}}>
 <div onClick={()=>{setCI({type:null,book:null});setSV("compose");}} style={{position:"absolute",top:-22,width:52,height:52,borderRadius:"50%",background:`linear-gradient(135deg,${T.acc},#9A4520)`,boxShadow:`0 4px 16px ${T.acc}50`,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",zIndex:10}}><span style={{fontSize:22,color:"#fff",marginTop:-1}}>✎</span></div>
 <span style={{fontFamily:T.ui,fontSize:9,fontWeight:500,color:T.tx4,marginTop:2}}>Publish</span>
 </div>
 {TABS.slice(2).map(t=>{const a=tab===t.id&&!subView;return <button key={t.id} className="tb" onClick={()=>{setTab(t.id);setSV(null);}} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,background:"none",border:"none",cursor:"pointer",color:a?T.gold:T.tx4,minHeight:48,position:"relative"}}>{a&&<div style={{position:"absolute",top:0,left:"50%",transform:"translateX(-50%)",width:20,height:2,borderRadius:1,background:T.gold}}/>}{t.id==="profile"?<div style={{width:26,height:26,borderRadius:"50%",border:`2px solid ${a?T.gold:"transparent"}`,overflow:"hidden",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}><Av T={T} i={(apiUser?.username||"?").slice(0,2).toUpperCase()} ink={apiUser?.ink||0} s={22}/></div>:<span style={{fontSize:20,lineHeight:1}}>{t.icon}</span>}<span style={{fontFamily:T.ui,fontSize:9,fontWeight:a?700:500}}>{t.label}</span></button>;})}
-</nav>
+</nav>}
 </div>;}
