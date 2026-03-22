@@ -27,8 +27,9 @@ services:
     region: oregon
 
     # Build: compile React frontend, then set up backend
+    # --include=dev ensures vite (a devDependency) is installed even in NODE_ENV=production
     buildCommand: >
-      npm install &&
+      npm install --include=dev &&
       npm run build &&
       cd server &&
       npm install &&
