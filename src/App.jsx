@@ -89,14 +89,28 @@ const[replyTo,setReplyTo]=useState(null);// {id,parentId,username}
 const[posting,setPosting]=useState(false);
 const[expanded,setExpanded]=useState(new Set());
 const[barVisible,setBarVisible]=useState(false);
+const[postTall,setPostTall]=useState(false);
 const inputRef=useRef(null);
 const commentsRef=useRef(null);
+const postRef=useRef(null);
 
 useEffect(()=>{
   API.getComments(post.id).then(data=>{
     setComments(data.map(mapC));
   }).catch(()=>setComments([]));
 },[post.id]);
+
+// Detect whether the post card is taller than 80% of the viewport.
+// If so the fixed bar would overlap post content, so we fall back to inline.
+useEffect(()=>{
+  const el=postRef.current;
+  if(!el)return;
+  const check=()=>setPostTall(el.getBoundingClientRect().height>window.innerHeight*0.8);
+  check();
+  const ro=new ResizeObserver(check);
+  ro.observe(el);
+  return()=>ro.disconnect();
+},[]);
 
 // Show the fixed comment bar as soon as the comments section reaches the viewport
 // (either scrolled into view, or already scrolled past).
@@ -184,19 +198,8 @@ function CRow({c,isReply=false,parentId=null}){return(
 </div>
 );}
 
-return <div style={{animation:"en .3s ease both",paddingBottom:barVisible?72:16}}>
-<button className="tb" onClick={onBack} style={{fontFamily:T.ui,fontSize:14,color:T.tx3,background:"none",border:"none",cursor:"pointer",marginBottom:14,minHeight:40,display:"flex",alignItems:"center",gap:6}}>← Back</button>
-{/* Full post */}
-<FC T={T} item={item} onToggle={localToggle} onBook={onBook} onUser={onUser}/>
-{/* Comments section — observed: bar appears as soon as this is in view */}
-<div ref={commentsRef} style={{marginTop:16,paddingTop:16,borderTop:`1px solid ${T.bdr}`}}>
-<div style={{fontFamily:T.ui,fontSize:13,fontWeight:700,color:T.tx,marginBottom:16}}>
-  {item.comments===0?"No comments yet":`${item.comments} Comment${item.comments!==1?"s":""}`}
-</div>
-{comments===null?<Spin T={T} mt={20} mb={20}/>:comments.length===0?<div style={{fontFamily:T.bd,fontSize:13,color:T.tx3,fontStyle:"italic",padding:"8px 0 20px"}}>Be the first to comment.</div>:comments.map(c=><CRow key={c.id} c={c}/>)}
-</div>
-{/* Fixed comment bar — appears only after the post has scrolled off the top (Facebook-style) */}
-{barVisible&&<div style={{position:"fixed",bottom:0,left:0,right:0,background:`${T.bg}F2`,backdropFilter:"blur(20px) saturate(1.3)",borderTop:`1px solid ${T.bdr}`,padding:"10px 16px 10px",paddingBottom:"calc(10px + env(safe-area-inset-bottom))",zIndex:90,animation:"fi .15s ease"}}>
+// Shared bar inner content — rendered fixed or inline depending on postTall
+const BarInner=<>
   {replyTo&&<div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6,fontFamily:T.ui,fontSize:11,color:T.tx4}}>
     <span>Replying to <strong style={{color:T.tx}}>@{replyTo.username}</strong></span>
     <button className="tb" onClick={()=>{setReplyTo(null);setNewComment("");}} style={{background:"none",border:"none",color:T.tx4,cursor:"pointer",fontSize:14,padding:0,minWidth:20,minHeight:20,marginLeft:4}}>✕</button>
@@ -208,6 +211,30 @@ return <div style={{animation:"en .3s ease both",paddingBottom:barVisible?72:16}
       {posting?"…":"Post"}
     </button>
   </div>
+</>;
+
+// Outer div has NO transform so position:fixed children work correctly.
+// The en animation (which uses translateY) is scoped to an inner div only.
+return <div style={{paddingBottom:barVisible&&!postTall?72:16}}>
+<div style={{animation:"en .3s ease both"}}>
+<button className="tb" onClick={onBack} style={{fontFamily:T.ui,fontSize:14,color:T.tx3,background:"none",border:"none",cursor:"pointer",marginBottom:14,minHeight:40,display:"flex",alignItems:"center",gap:6}}>← Back</button>
+{/* Full post — measured to detect tall posts */}
+<div ref={postRef}><FC T={T} item={item} onToggle={localToggle} onBook={onBook} onUser={onUser}/></div>
+{/* Comments section — observed: bar appears as soon as this is in view */}
+<div ref={commentsRef} style={{marginTop:16,paddingTop:16,borderTop:`1px solid ${T.bdr}`}}>
+<div style={{fontFamily:T.ui,fontSize:13,fontWeight:700,color:T.tx,marginBottom:16}}>
+  {item.comments===0?"No comments yet":`${item.comments} Comment${item.comments!==1?"s":""}`}
+</div>
+{comments===null?<Spin T={T} mt={20} mb={20}/>:comments.length===0?<div style={{fontFamily:T.bd,fontSize:13,color:T.tx3,fontStyle:"italic",padding:"8px 0 20px"}}>Be the first to comment.</div>:comments.map(c=><CRow key={c.id} c={c}/>)}
+</div>
+{/* Long-post fallback: bar scrolls inline below comments instead of floating */}
+{barVisible&&postTall&&<div style={{marginTop:16,background:`${T.bg}F2`,borderTop:`1px solid ${T.bdr}`,padding:"10px 16px 10px",paddingBottom:"calc(10px + env(safe-area-inset-bottom))"}}>
+  {BarInner}
+</div>}
+</div>
+{/* Fixed bar — sibling of the animated div so CSS transform doesn't break it */}
+{barVisible&&!postTall&&<div style={{position:"fixed",bottom:0,left:0,right:0,background:`${T.bg}F2`,backdropFilter:"blur(20px) saturate(1.3)",borderTop:`1px solid ${T.bdr}`,padding:"10px 16px 10px",paddingBottom:"calc(10px + env(safe-area-inset-bottom))",zIndex:90,animation:"fi .15s ease"}}>
+  {BarInner}
 </div>}
 </div>;}
 
