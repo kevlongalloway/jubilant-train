@@ -10,6 +10,7 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
     "db:seed": "node prisma/seed.js",
+    "db:seed:large": "node prisma/seed-large.js",
     "db:studio": "prisma studio"
   },
   "dependencies": {
