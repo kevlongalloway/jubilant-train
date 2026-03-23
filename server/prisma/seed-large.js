@@ -178,8 +178,9 @@ async function seedLarge() {
     { username: 'Carmen Reyes',    handle: '@creyes',     email: 'carmen@precis.app',  lens: 'explorer',    bio: 'Borders are for crossing.' },
   ];
 
-  const usedHandles = new Set(CURATED.map(u => u.handle));
-  const usedEmails  = new Set(CURATED.map(u => u.email));
+  const usedUsernames = new Set(CURATED.map(u => u.username));
+  const usedHandles   = new Set(CURATED.map(u => u.handle));
+  const usedEmails    = new Set(CURATED.map(u => u.email));
 
   const userData = CURATED.map(u => ({
     id: randomUUID(),
@@ -193,6 +194,11 @@ async function seedLarge() {
     const firstName = faker.person.firstName();
     const lastName  = faker.person.lastName();
     const idx       = userData.length;
+
+    // Build unique username
+    let username = `${firstName} ${lastName}`;
+    if (usedUsernames.has(username)) username = `${username} ${idx}`;
+    usedUsernames.add(username);
 
     // Build unique handle
     const baseHandle = faker.internet
@@ -210,14 +216,14 @@ async function seedLarge() {
     usedEmails.add(email);
 
     userData.push({
-      id:       randomUUID(),
-      username: `${firstName} ${lastName}`,
+      id: randomUUID(),
+      username,
       handle,
       email,
       password,
-      lens:     pick(LENSES),
-      bio:      faker.lorem.sentence({ min: 4, max: 10 }),
-      ink:      100 + Math.floor(Math.random() * 5000),
+      lens: pick(LENSES),
+      bio:  faker.lorem.sentence({ min: 4, max: 10 }),
+      ink:  100 + Math.floor(Math.random() * 5000),
     });
   }
 
