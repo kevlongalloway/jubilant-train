@@ -197,9 +197,10 @@ async function getCandidates(userId, followedIds) {
  * @param {string} userId
  * @param {string|null} cursor - ISO timestamp for cursor-based pagination
  * @param {number} limit - Items per page
+ * @param {string[]} sessionSeenIds - Post IDs already shown this session (penalized, not excluded)
  * @returns {{ posts: ScoredPost[], nextCursor: string|null }}
  */
-async function generateFeed(userId, cursor = null, limit = FEED_PAGE_SIZE) {
+async function generateFeed(userId, cursor = null, limit = FEED_PAGE_SIZE, sessionSeenIds = []) {
   // 1. Load user context in parallel
   const [userPreference, follows, seenPostIds] = await Promise.all([
     prisma.userPreference.findUnique({ where: { userId } }),
@@ -218,6 +219,8 @@ async function generateFeed(userId, cursor = null, limit = FEED_PAGE_SIZE) {
   const userVector = (userPreference?.preferenceVector) || {};
   const followedIds = new Set(follows.map(f => f.followingId));
   const seenIds = new Set(seenPostIds.map(s => s.postId));
+  // Posts the client explicitly reported as already shown this session
+  const sessionSeen = new Set(sessionSeenIds);
 
   // 2. Get candidate posts
   const candidates = await getCandidates(userId, followedIds);
@@ -233,9 +236,21 @@ async function generateFeed(userId, cursor = null, limit = FEED_PAGE_SIZE) {
     getUserInteractionMap(userId, candidateIds),
   ]);
 
-  // 4. Score all candidates — wide jitter (±45%) so the feed shows meaningfully
+  // 4. Shuffle older candidates so each refresh competes from a different pool.
+  //    Posts under 48h always stay (they need the novelty window); older posts rotate.
+  const cutoff48h = Date.now() - 48 * 60 * 60 * 1000;
+  const freshCandidates = candidates.filter(p => new Date(p.createdAt).getTime() >= cutoff48h);
+  const olderCandidates = candidates.filter(p => new Date(p.createdAt).getTime() < cutoff48h);
+  // Fisher-Yates shuffle the older pool so a different subset reaches scoring each time
+  for (let i = olderCandidates.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [olderCandidates[i], olderCandidates[j]] = [olderCandidates[j], olderCandidates[i]];
+  }
+  const shuffledCandidates = [...freshCandidates, ...olderCandidates];
+
+  // 5. Score all candidates — wide jitter (±45%) so the feed shows meaningfully
   //    different orderings on every refresh, not just a slightly shuffled fixed list.
-  const scored = candidates.map(post => {
+  const scored = shuffledCandidates.map(post => {
     const counts = interactionCounts[post.id] || {};
     const decay = computeFreshnessDecay(post.createdAt);
     const base = computeFinalScore(post, counts, userVector, followedIds, decay);
@@ -247,21 +262,24 @@ async function generateFeed(userId, cursor = null, limit = FEED_PAGE_SIZE) {
       counts,
       userInteractions: userInteractionMap[post.id] || new Set(),
       alreadySeen: seenIds.has(post.id),
+      sessionSeen: sessionSeen.has(post.id),
     };
   });
 
-  // 5. Sort by score descending
+  // 6. Sort by score descending
   scored.sort((a, b) => b.score - a.score);
 
-  // 6. Apply cursor (skip posts before cursor timestamp)
+  // 7. Apply cursor (skip posts before cursor timestamp)
   let filtered = scored;
   if (cursor) {
     const cursorTime = new Date(cursor).getTime();
     filtered = scored.filter(s => new Date(s.post.createdAt).getTime() < cursorTime);
   }
 
-  // 7. Diversity filter — no genre spam, no author spam
-  //    Slightly downrank already-seen posts (don't fully remove them)
+  // 8. Diversity filter — no genre spam, no author spam.
+  //    Session-seen posts are heavily penalized (×0.12) so they sink to the bottom
+  //    but can still appear if there's truly nothing else left.
+  //    Interaction-seen posts (viewed/clicked in 48h) get a further ×0.3 penalty.
   const result = [];
   const genreCounts = {};
   const authorCounts = {};
@@ -280,8 +298,11 @@ async function generateFeed(userId, cursor = null, limit = FEED_PAGE_SIZE) {
     // Check author diversity
     if ((authorCounts[authorId] || 0) >= MAX_SAME_AUTHOR) continue;
 
-    // Slightly reduce score for already-seen posts (they appear lower)
-    const adjustedScore = item.alreadySeen ? item.score * 0.3 : item.score;
+    // Session-seen posts are very unlikely to resurface (×0.12 penalty).
+    // Interaction-seen posts (viewed/clicked recently) get an additional penalty.
+    const sessionPenalty = item.sessionSeen ? 0.12 : 1.0;
+    const interactionPenalty = item.alreadySeen ? 0.3 : 1.0;
+    const adjustedScore = item.score * sessionPenalty * interactionPenalty;
 
     genreCounts[genreKey] = (genreCounts[genreKey] || 0) + 1;
     authorCounts[authorId] = (authorCounts[authorId] || 0) + 1;
@@ -292,7 +313,7 @@ async function generateFeed(userId, cursor = null, limit = FEED_PAGE_SIZE) {
     });
   }
 
-  // 8. Compute next cursor from the last post's createdAt
+  // 9. Compute next cursor from the last post's createdAt
   const nextCursor = result.length === limit
     ? result[result.length - 1].createdAt
     : null;

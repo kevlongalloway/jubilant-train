@@ -107,9 +107,11 @@ export async function getUser(userId) {
  * @param {string|null} cursor - ISO timestamp for pagination
  * @param {number} limit
  */
-export async function getFeed(cursor = null, limit = 20) {
+export async function getFeed(cursor = null, limit = 20, exclude = []) {
   const params = new URLSearchParams({ limit: String(limit) });
   if (cursor) params.set('cursor', cursor);
+  // Send seen post IDs so the backend can exclude them from candidates on refresh
+  if (exclude.length > 0) params.set('exclude', exclude.slice(0, 80).join(','));
   return apiFetch(`/feed?${params}`);
 }
 

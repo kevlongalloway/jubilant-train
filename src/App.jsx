@@ -937,12 +937,17 @@ useEffect(()=>{if(apiUser){API.getMe().then(u=>{const fresh={...apiUser,...u};AP
 const[feedCursor,setFeedCursor]=useState(null);
 const[hasMoreFeed,setHasMoreFeed]=useState(true);
 const[feedLoading,setFeedLoading]=useState(false);
+// Tracks every post ID shown this session so refreshes don't repeat the same posts
+const sessionSeenIdsRef=useRef(new Set());
 // loadFeed: fetch personalized feed from API, append=true for pagination
 const loadFeed=useCallback(async(cursor=null,append=false)=>{
   if(feedLoading)return;
   setFeedLoading(true);
   try{
-    const result=await API.getFeed(cursor,20);
+    // On a fresh load (refresh), exclude posts already seen this session so the
+    // backend surfaces different posts instead of the same top-scorers every time.
+    const exclude=(!append&&!cursor)?[...sessionSeenIdsRef.current]:[];
+    const result=await API.getFeed(cursor,20,exclude);
     const mapped=(result.posts||[]).map(p=>({
       id:p.id,type:p.type,
       user:{id:p.user.id,name:p.user.username,handle:p.user.handle,in:(p.user.username||"?").slice(0,2).toUpperCase(),ink:p.user.ink||0,lens:p.user.lens||"explorer"},
@@ -951,6 +956,8 @@ const loadFeed=useCallback(async(cursor=null,append=false)=>{
       likes:p.likes||0,comments:p.comments||0,shelved:p.saves||0,reposts:0,
       isLiked:p.isLiked||false,isShelved:p.isSaved||false,isReposted:false,following:true,
     }));
+    // Remember what we showed so the next refresh can skip these
+    mapped.forEach(p=>sessionSeenIdsRef.current.add(p.id));
     setFeed(prev=>append?[...prev,...mapped]:mapped);
     setFeedCursor(result.nextCursor);
     setHasMoreFeed(!!result.nextCursor);
