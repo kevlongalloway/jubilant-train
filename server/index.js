@@ -16,6 +16,7 @@ const postsRoutes = require('./routes/posts');
 const usersRoutes = require('./routes/users');
 const commentsRoutes = require('./routes/comments');
 const { runPreferenceBuilder } = require('./jobs/preferenceBuilder');
+const { topUpRecentContent } = require('./prisma/seed');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -67,6 +68,13 @@ cron.schedule('0 * * * *', async () => {
   }
 });
 
+// Daily content top-up: ensures fresh posts exist so new users see an active feed.
+cron.schedule('0 6 * * *', async () => {
+  try { await topUpRecentContent(); } catch (err) {
+    console.error('[cron] Content top-up error:', err.message);
+  }
+});
+
 // ─── Error Handler ────────────────────────────────────────────
 app.use((err, req, res, next) => {
   console.error('[error]', err.message);
@@ -75,7 +83,11 @@ app.use((err, req, res, next) => {
 });
 
 // ─── Start ────────────────────────────────────────────────────
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, '0.0.0.0', async () => {
   console.log(`[precis] Server running on port ${PORT}`);
   console.log(`[precis] ENV: ${process.env.NODE_ENV || 'development'}`);
+  // Ensure the feed has recent posts on every cold start
+  try { await topUpRecentContent(); } catch (err) {
+    console.error('[startup] Content top-up error:', err.message);
+  }
 });

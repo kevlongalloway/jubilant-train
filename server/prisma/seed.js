@@ -99,6 +99,35 @@ const ORIGINAL_TEMPLATES = [
   "The last sentence of a novel is the first thing the author wrote, sometimes. You can tell when that's true.",
   "Reading in translation is reading through glass. The glass is part of it now.",
   "I gave a book to someone once with all my margin notes. I regretted it immediately. Not because they'd judge me — because I'd lost the conversation I'd had with it.",
+  "Started something new today. Three pages in and I already know it's going to cost me sleep.",
+  "The library copy had a name written on the inside cover, crossed out twice. I thought about that person for the entire book.",
+  "Sometimes the book you need finds you. I don't believe in much but I believe in that.",
+  "Finished something yesterday. I keep picking up my phone to tell someone about it, then putting it down. No one would understand.",
+  "The difference between a book you read and a book that reads you is time. You figure out which one it was years later.",
+  "I've started underlining in pencil again. Light enough to erase. I can't decide if I'm making peace with it or being a coward.",
+  "Three people recommended the same book to me in one week. I'm afraid to start it. What if it's not that good? What if it is?",
+  "The chapter I skimmed because I was tired turned out to be the chapter the whole book was building to. I went back.",
+  "Re-reading something I loved at twenty-two. The book is patient with me about how much I've changed.",
+  "I've been in a reading slump for six weeks. Nothing landed. Then something landed. I'd forgotten what that felt like.",
+  "Finished it on the train. I had to sit in the station for twenty minutes before I could get up.",
+  "The author kills a character in the third act that I wasn't prepared to lose. I'm still not over it.",
+  "A good first sentence is a promise. A good last sentence is the answer to a question you didn't know you were asking.",
+  "I've read this paragraph four times. Not because I don't understand it. Because I do.",
+  "Some books are better the second time. Some books you should only read once. Knowing which is which is the skill.",
+];
+
+// Additional recent-post templates with more present-tense energy
+const FRESH_ORIGINAL_TEMPLATES = [
+  "Just put it down. One of those books where you feel the weight of it after — not sad exactly, just full.",
+  "Twenty pages into something new. The voice is doing something I haven't heard before. Staying very still.",
+  "Recommended this one to three people today. That's how I know it got me.",
+  "Reading this on my lunch break and it's ruining my ability to think about anything else.",
+  "The prose in this is so precise it almost hurts. Like watching someone build a clock with their hands.",
+  "Found a new author. Already bought two more of their books before I'm done with this one. A good problem.",
+  "This one is hard to put down and hard to pick back up. Both things at once.",
+  "Been turning one sentence over in my head all morning. Might be the best sentence I've read all year.",
+  "Took me four chapters to understand what this book was actually about. Then it hit. Then everything hit.",
+  "Reading this slowly on purpose. I can feel myself rationing it.",
 ];
 
 function randomPast(maxDaysAgo) {
@@ -153,7 +182,7 @@ async function seed() {
   // ── Posts ──────────────────────────────────────────────────
   const posts = [];
 
-  // Reviews: each book gets 3-4 reviews from different users
+  // Reviews: each book gets 3-4 reviews spread over the last 25 days
   for (const book of books) {
     const count = 3 + Math.floor(Math.random() * 2);
     const reviewers = [...users].sort(() => Math.random() - 0.5).slice(0, count);
@@ -166,13 +195,13 @@ async function seed() {
           type: 'review',
           content: tmpl.replace(/{title}/g, book.title).replace(/{author}/g, book.author),
           tags: ['review', book.genres[0] || 'literary fiction'],
-          createdAt: randomPast(6),
+          createdAt: randomPast(25),
         },
       }));
     }
   }
 
-  // Recommendations: each book gets 2 recommendations
+  // Recommendations: each book gets 2 recommendations spread over last 28 days
   for (const book of books) {
     const recommenders = [...users].sort(() => Math.random() - 0.5).slice(0, 2);
     for (const user of recommenders) {
@@ -184,13 +213,13 @@ async function seed() {
           type: 'recommendation',
           content: tmpl.replace(/{title}/g, book.title).replace(/{author}/g, book.author),
           tags: ['recommendation', book.genres[0] || 'literary fiction'],
-          createdAt: randomPast(7),
+          createdAt: randomPast(28),
         },
       }));
     }
   }
 
-  // Original writing: each user writes 4-6 original posts
+  // Original writing: each user writes 4-6 original posts spread over last 20 days
   for (const user of users) {
     const count = 4 + Math.floor(Math.random() * 3);
     for (let i = 0; i < count; i++) {
@@ -200,7 +229,7 @@ async function seed() {
           type: 'original',
           content: pick(ORIGINAL_TEMPLATES),
           tags: ['original', pick(['reading-life', 'reflection', 'craft'])],
-          createdAt: randomPast(7),
+          createdAt: randomPast(20),
         },
       }));
     }
@@ -258,6 +287,65 @@ async function seed() {
   console.log(`  Login: maya@precis.app / precis123`);
 }
 
-seed()
-  .catch(err => { console.error('Seed failed:', err); process.exit(1); })
-  .finally(() => prisma.$disconnect());
+/**
+ * Top up recent posts so the feed always has fresh content.
+ * Creates ~25 posts spread over the last 24h if fewer than 15 exist.
+ * Safe to call on every server start — idempotent when content is fresh.
+ */
+async function topUpRecentContent() {
+  const recentCount = await prisma.post.count({
+    where: { createdAt: { gte: new Date(Date.now() - 36 * 3600000) } },
+  });
+  if (recentCount >= 15) return; // Already enough fresh content
+
+  const [users, books] = await Promise.all([
+    prisma.user.findMany({ select: { id: true } }),
+    prisma.book.findMany({ select: { id: true, title: true, author: true, genres: true } }),
+  ]);
+  if (users.length === 0) return;
+
+  console.log(`[feed] Topping up recent content (${recentCount} posts in last 36h)...`);
+
+  const postsToCreate = 28;
+  const allTemplates = [...ORIGINAL_TEMPLATES, ...FRESH_ORIGINAL_TEMPLATES];
+  for (let i = 0; i < postsToCreate; i++) {
+    const user = pick(users);
+    // Spread across last 30 hours so posts appear at varied freshness levels
+    const hoursAgo = Math.random() * 30;
+    const createdAt = new Date(Date.now() - hoursAgo * 3600000);
+    const useBook = books.length > 0 && Math.random() < 0.55;
+    const type = useBook ? (Math.random() < 0.55 ? 'review' : 'recommendation') : 'original';
+
+    if (useBook) {
+      const book = pick(books);
+      const tmpl = type === 'review' ? pick(REVIEW_TEMPLATES) : pick(RECOMMENDATION_TEMPLATES);
+      await prisma.post.create({
+        data: {
+          userId: user.id, bookId: book.id, type,
+          content: tmpl.replace(/{title}/g, book.title).replace(/{author}/g, book.author),
+          tags: [type, book.genres[0] || 'literary fiction'],
+          createdAt,
+        },
+      });
+    } else {
+      await prisma.post.create({
+        data: {
+          userId: user.id, type: 'original',
+          content: pick(allTemplates),
+          tags: ['original', pick(['reading-life', 'reflection', 'craft'])],
+          createdAt,
+        },
+      });
+    }
+  }
+  console.log(`[feed] Created ${postsToCreate} recent posts.`);
+}
+
+// Run seed directly when called as a script; export helpers for server use
+if (require.main === module) {
+  seed()
+    .catch(err => { console.error('Seed failed:', err); process.exit(1); })
+    .finally(() => prisma.$disconnect());
+}
+
+module.exports = { topUpRecentContent };

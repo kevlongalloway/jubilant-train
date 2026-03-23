@@ -20,6 +20,9 @@ const FEED_PAGE_SIZE = 20;      // Posts per page
 const FRESHNESS_LAMBDA = 0.05;  // Decay rate (higher = older posts penalized more)
 const MAX_SAME_GENRE = 3;       // Max consecutive posts from same genre (diversity)
 const MAX_SAME_AUTHOR = 2;      // Max posts from same author per page
+const FOLLOW_BOOST = 3.0;       // Multiplier for posts from followed users
+const JITTER_MIN = 0.55;        // Lower bound of random jitter (wider = more shuffle per load)
+const JITTER_MAX = 1.45;        // Upper bound of random jitter
 
 // ─── Scoring Functions ────────────────────────────────────────
 
@@ -40,6 +43,20 @@ function computeEngagementScore(counts) {
 function computeFreshnessDecay(createdAt) {
   const hoursOld = (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60);
   return Math.exp(-FRESHNESS_LAMBDA * hoursOld);
+}
+
+/**
+ * Novelty bonus — very new posts spike high and drop off over 48h.
+ * This ensures fresh content surfaces above established posts with high engagement.
+ * < 2h: 15×   2–6h: 8×   6–24h: 3×   24–48h: 1.5×   48h+: 1×
+ */
+function computeNoveltyBonus(createdAt) {
+  const hoursOld = (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60);
+  if (hoursOld < 2)  return 15;
+  if (hoursOld < 6)  return 8;
+  if (hoursOld < 24) return 3;
+  if (hoursOld < 48) return 1.5;
+  return 1;
 }
 
 /**
@@ -77,10 +94,11 @@ function cosineSimilarity(userVector, postGenres) {
 }
 
 /**
- * Final score combining engagement, affinity, and freshness.
- * finalScore = engagementScore × userAffinity × freshnessDecay
+ * Final score combining engagement, affinity, freshness, novelty, and follow status.
+ * finalScore = baseScore × affinity × freshnessDecay × noveltyBonus × followBoost
  *
- * Affinity is boosted for followed users and trending posts.
+ * - noveltyBonus spikes new posts to the top regardless of engagement
+ * - followBoost (3×) ensures followed users reliably appear above strangers
  */
 function computeFinalScore(post, counts, userVector, followedIds, freshnessDecay) {
   const engagement = computeEngagementScore(counts);
@@ -89,13 +107,16 @@ function computeFinalScore(post, counts, userVector, followedIds, freshnessDecay
   const genres = post.book?.genres || [];
   const affinity = cosineSimilarity(userVector, genres);
 
-  // Boost posts from followed users
-  const followBoost = followedIds.has(post.userId) ? 1.5 : 1.0;
+  // Strongly boost posts from followed users
+  const followBoost = followedIds.has(post.userId) ? FOLLOW_BOOST : 1.0;
+
+  // New posts spike high then drop off naturally
+  const noveltyBonus = computeNoveltyBonus(post.createdAt);
 
   // Minimum score so all posts have some chance
   const baseScore = Math.max(engagement, 1);
 
-  return baseScore * affinity * freshnessDecay * followBoost;
+  return baseScore * affinity * freshnessDecay * noveltyBonus * followBoost;
 }
 
 // ─── Candidate Generation ────────────────────────────────────
@@ -212,13 +233,13 @@ async function generateFeed(userId, cursor = null, limit = FEED_PAGE_SIZE) {
     getUserInteractionMap(userId, candidateIds),
   ]);
 
-  // 4. Score all candidates — add ±20% random jitter so the feed
-  //    shows a different ordering on every load (not a fixed list).
+  // 4. Score all candidates — wide jitter (±45%) so the feed shows meaningfully
+  //    different orderings on every refresh, not just a slightly shuffled fixed list.
   const scored = candidates.map(post => {
     const counts = interactionCounts[post.id] || {};
     const decay = computeFreshnessDecay(post.createdAt);
     const base = computeFinalScore(post, counts, userVector, followedIds, decay);
-    const jitter = 0.80 + Math.random() * 0.40; // 0.80–1.20×
+    const jitter = JITTER_MIN + Math.random() * (JITTER_MAX - JITTER_MIN); // 0.55–1.45×
 
     return {
       post,
