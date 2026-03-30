@@ -3,739 +3,781 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Précis — Join the Waitlist</title>
-  <meta name="description" content="Précis is the social network for serious readers and writers. Request early access." />
+  <title>Précis — Request Access</title>
+  <meta name="description" content="Précis returns the margin to the book. Join the waitlist for a new kind of reading network." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,400;1,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400;1,600&family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --ink:     #0F0E0A;
-      --paper:   #F5F1E8;
-      --paper2:  #EDE9DF;
-      --rule:    #0F0E0A;
-      --rule-lt: #C8C3B6;
-      --red:     #BF1515;
-      --muted:   #706B5E;
-      --mono:    'DM Mono', 'Courier New', monospace;
-      --serif:   'Playfair Display', Georgia, serif;
-      --sans:    'Helvetica Neue', Arial, sans-serif;
+      /* Desk surface */
+      --desk:    #0C1A27;
+      --desk2:   #162333;
+
+      /* Book page */
+      --page:    #F6F2EB;
+      --page2:   #EDE9E0;
+
+      /* Typography */
+      --ink:     #1C1810;
+      --muted:   #857E6E;
+      --faint:   #B0A898;
+      --rule:    #D9D3C7;
+      --lnum:    #BEB6A6;
+
+      /* Inline highlights */
+      --hl-amber: rgba(251,191,36,0.35);
+      --hl-pink:  rgba(251,113,133,0.28);
+      --hl-blue:  rgba(96,165,250,0.28);
+      --hl-green: rgba(74,222,128,0.28);
+
+      /* Annotation cards */
+      --a1-bg: #FFFBF0;  --a1-acc: #D97706;
+      --a2-bg: #EFF6FF;  --a2-acc: #2563EB;
+      --a3-bg: #F0FDF4;  --a3-acc: #16A34A;
+      --a4-bg: #FFF1F2;  --a4-acc: #E11D48;
+
+      /* Sticky note */
+      --sticky-bg:  #FEFCE8;
+      --sticky-brdr: #EAB308;
+
+      /* Fonts */
+      --serif: 'Crimson Pro', Georgia, serif;
+      --mono:  'JetBrains Mono', 'Courier New', monospace;
+      --sans:  'Plus Jakarta Sans', system-ui, sans-serif;
     }
 
     html { scroll-behavior: smooth; }
 
+    /* ── DESK ── */
     body {
-      background: var(--paper);
-      color: var(--ink);
-      font-family: var(--sans);
-      font-size: 15px;
-      line-height: 1.5;
-    }
-
-    /* ─── MASTHEAD ─── */
-    .masthead {
-      border-bottom: 3px solid var(--ink);
-    }
-
-    .masthead-top {
-      display: flex;
-      align-items: stretch;
-      justify-content: space-between;
-    }
-
-    .masthead-title {
+      background: var(--desk);
+      min-height: 100vh;
       font-family: var(--serif);
-      font-weight: 900;
-      font-size: clamp(36px, 6vw, 72px);
-      letter-spacing: -0.02em;
-      line-height: 1;
-      padding: 20px 32px 16px;
-      border-right: 3px solid var(--ink);
-      flex-shrink: 0;
-    }
-
-    .masthead-meta {
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
-      padding: 14px 28px;
-      flex: 1;
-    }
-
-    .masthead-tagline {
-      font-family: var(--mono);
-      font-size: 11px;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-
-    .masthead-issue {
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--muted);
-    }
-
-    .masthead-cta-strip {
-      background: var(--red);
-      color: #fff;
-      font-family: var(--mono);
-      font-size: 11px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      padding: 7px 32px;
-      display: flex;
       align-items: center;
-      gap: 20px;
-      border-top: 1px solid rgba(0,0,0,0.2);
+      padding: 40px 24px 60px;
     }
 
-    .strip-dot {
-      display: inline-block;
-      width: 5px; height: 5px;
-      background: rgba(255,255,255,0.6);
-      border-radius: 50%;
-    }
-
-    /* ─── MAIN LAYOUT ─── */
-    .page-body {
-      display: grid;
-      grid-template-columns: 1fr 420px;
-      min-height: calc(100vh - 120px);
-      border-bottom: 3px solid var(--ink);
-    }
-
-    /* ─── LEFT: EDITORIAL ─── */
-    .editorial {
-      border-right: 3px solid var(--ink);
-      display: flex;
-      flex-direction: column;
-    }
-
-    .editorial-hero {
-      padding: 52px 48px 40px;
-      border-bottom: 1px solid var(--rule-lt);
-    }
-
-    .vol-label {
-      font-family: var(--mono);
-      font-size: 10px;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--red);
-      margin-bottom: 20px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .vol-label::before {
+    body::before {
       content: '';
-      display: block;
-      width: 24px;
-      height: 1px;
-      background: var(--red);
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 70% 60% at 15% 50%, rgba(22,35,51,0.9) 0%, transparent 70%),
+        repeating-linear-gradient(
+          90deg,
+          transparent 0px,
+          transparent 39px,
+          rgba(255,255,255,0.018) 39px,
+          rgba(255,255,255,0.018) 40px
+        );
+      pointer-events: none;
     }
 
-    .hero-headline {
+    /* ── BOOK WRAPPER ── */
+    .book {
+      position: relative;
+      width: 100%;
+      max-width: 1080px;
+      background: var(--page);
+      box-shadow:
+        0 2px 4px rgba(0,0,0,0.2),
+        0 8px 32px rgba(0,0,0,0.4),
+        0 32px 80px rgba(0,0,0,0.3),
+        inset -1px 0 0 rgba(0,0,0,0.06),
+        inset 1px 0 0 rgba(255,255,255,0.4);
+      border-top: 3px solid var(--page2);
+    }
+
+    /* Spine crease */
+    .book::after {
+      content: '';
+      position: absolute;
+      left: 52px;
+      top: 0; bottom: 0;
+      width: 1px;
+      background: linear-gradient(to bottom, transparent 0%, var(--rule) 10%, var(--rule) 90%, transparent 100%);
+      pointer-events: none;
+    }
+
+    /* ── BOOK HEADER ── */
+    .bk-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      padding: 22px 32px 18px 60px;
+      border-bottom: 2px solid var(--ink);
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .bk-wordmark {
       font-family: var(--serif);
-      font-weight: 900;
-      font-size: clamp(32px, 4.5vw, 58px);
-      line-height: 1.05;
-      letter-spacing: -0.02em;
-      margin-bottom: 28px;
-      max-width: 560px;
-    }
-
-    .hero-headline em {
-      font-style: italic;
-      font-weight: 700;
-    }
-
-    .hero-body {
-      font-size: 16px;
-      line-height: 1.75;
-      color: var(--muted);
-      max-width: 480px;
-      font-family: Georgia, serif;
-    }
-
-    /* Pull quote */
-    .pull-quote {
-      padding: 36px 48px;
-      border-bottom: 1px solid var(--rule-lt);
-    }
-
-    .pull-quote blockquote {
-      font-family: var(--serif);
-      font-style: italic;
-      font-size: clamp(19px, 2.5vw, 26px);
-      line-height: 1.45;
-      border-left: 4px solid var(--red);
-      padding-left: 24px;
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
       color: var(--ink);
+      line-height: 1;
     }
 
-    /* Feature list */
-    .feature-list {
-      padding: 36px 48px;
-      flex: 1;
+    .bk-wordmark sup {
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 400;
+      vertical-align: super;
+      margin-left: 2px;
     }
 
-    .feature-list-heading {
+    .bk-meta {
       font-family: var(--mono);
       font-size: 10px;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
       color: var(--muted);
-      margin-bottom: 24px;
-      padding-bottom: 10px;
-      border-bottom: 1px solid var(--rule-lt);
+      letter-spacing: 0.04em;
+      line-height: 1.8;
+      text-align: right;
     }
 
-    .feature-items {
+    /* ── BOOK BODY: 3-col grid ── */
+    .bk-body {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 52px 1fr 308px;
+    }
+
+    /* ── GUTTER: line numbers ── */
+    .gutter {
+      border-right: 1px solid var(--rule);
+      padding: 32px 0 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       gap: 0;
     }
 
-    .feature-item {
-      padding: 16px 20px 16px 0;
-      border-bottom: 1px solid var(--rule-lt);
-      display: flex;
-      gap: 14px;
-      align-items: flex-start;
-    }
-
-    .feature-item:nth-child(odd) {
-      border-right: 1px solid var(--rule-lt);
-      padding-right: 20px;
-    }
-
-    .feature-item:nth-child(even) {
-      padding-left: 20px;
-    }
-
-    .feature-num {
+    .ln {
       font-family: var(--mono);
-      font-size: 11px;
-      color: var(--red);
-      padding-top: 2px;
-      flex-shrink: 0;
+      font-size: 9px;
+      color: var(--lnum);
+      line-height: 1;
+      padding: 4px 0;
+      user-select: none;
     }
 
-    .feature-text strong {
-      display: block;
-      font-size: 13px;
-      font-weight: 600;
-      letter-spacing: 0.01em;
-      margin-bottom: 3px;
+    .ln.act { color: var(--a4-acc); font-weight: 500; }
+
+    /* ── MANUSCRIPT ── */
+    .ms {
+      padding: 40px 48px 48px 36px;
+      border-right: 1px solid var(--rule);
     }
 
-    .feature-text span {
-      font-size: 12px;
+    .ms-chapter {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
       color: var(--muted);
-      line-height: 1.5;
+      margin-bottom: 32px;
     }
 
-    /* ─── RIGHT: FORM PANEL ─── */
-    .form-panel {
+    .ms-section {
+      margin-bottom: 36px;
+    }
+
+    .ms-section:last-child { margin-bottom: 0; }
+
+    .ms-p {
+      font-family: var(--serif);
+      font-size: 19px;
+      line-height: 1.72;
+      color: var(--ink);
+      hanging-punctuation: first;
+    }
+
+    .ms-lead {
+      font-family: var(--serif);
+      font-size: 28px;
+      font-weight: 600;
+      line-height: 1.25;
+      color: var(--ink);
+      margin-bottom: 14px;
+      letter-spacing: -0.01em;
+    }
+
+    .ms-aside {
+      font-family: var(--serif);
+      font-style: italic;
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 10px;
+      padding-left: 16px;
+      border-left: 2px solid var(--rule);
+    }
+
+    .ms-invite-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      color: var(--faint);
+      text-transform: uppercase;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .ms-invite-label::before,
+    .ms-invite-label::after {
+      content: '';
+      display: block;
+      height: 1px;
+      flex: 1;
+      background: var(--rule);
+    }
+
+    /* Inline highlights */
+    .hl {
+      padding: 0 2px;
+      border-radius: 2px;
+      transition: filter 0.15s;
+    }
+    .hl:hover { filter: saturate(1.6) brightness(0.96); }
+    .hl-amber { background: var(--hl-amber); }
+    .hl-pink  { background: var(--hl-pink); }
+    .hl-blue  { background: var(--hl-blue); }
+    .hl-green { background: var(--hl-green); }
+
+    /* Footnote markers */
+    sup.fn {
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 500;
+      color: var(--muted);
+      vertical-align: super;
+      margin-left: 1px;
+      cursor: default;
+    }
+
+    /* ── MARGIN ── */
+    .margin {
+      padding: 32px 24px 32px 20px;
       display: flex;
       flex-direction: column;
+      gap: 18px;
     }
 
-    .form-panel-header {
-      padding: 28px 32px 20px;
-      border-bottom: 1px solid var(--rule-lt);
-    }
-
-    .form-panel-label {
+    /* Annotation card base */
+    .ann {
+      border-left: 3px solid;
+      padding: 12px 14px;
       font-family: var(--mono);
-      font-size: 10px;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 8px;
-    }
-
-    .form-panel-title {
-      font-family: var(--serif);
-      font-weight: 700;
-      font-size: 22px;
-      line-height: 1.2;
-    }
-
-    .form-panel-body {
-      padding: 28px 32px;
-      flex: 1;
-    }
-
-    /* Form fields */
-    .field {
-      margin-bottom: 24px;
-    }
-
-    .field-label {
-      display: block;
-      font-family: var(--mono);
-      font-size: 10px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 8px;
-    }
-
-    .field-input {
-      display: block;
-      width: 100%;
-      background: transparent;
-      border: none;
-      border-bottom: 1.5px solid var(--ink);
-      padding: 8px 0 10px;
-      font-size: 15px;
-      font-family: var(--sans);
-      color: var(--ink);
-      outline: none;
-      transition: border-color 0.15s;
-      border-radius: 0;
-      -webkit-appearance: none;
-    }
-
-    .field-input::placeholder { color: var(--rule-lt); }
-
-    .field-input:focus {
-      border-bottom-color: var(--red);
-    }
-
-    .field-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-    }
-
-    .field-select-wrap {
+      font-size: 11px;
+      line-height: 1.65;
       position: relative;
     }
 
-    .field-select-wrap::after {
-      content: '↓';
-      position: absolute;
-      right: 0;
-      bottom: 10px;
-      font-size: 13px;
-      color: var(--muted);
-      pointer-events: none;
-      font-family: var(--mono);
-    }
-
-    .field-select {
-      display: block;
-      width: 100%;
-      background: transparent;
-      border: none;
-      border-bottom: 1.5px solid var(--ink);
-      padding: 8px 24px 10px 0;
-      font-size: 15px;
-      font-family: var(--sans);
-      color: var(--ink);
-      outline: none;
-      appearance: none;
-      cursor: pointer;
-      border-radius: 0;
-      transition: border-color 0.15s;
-    }
-
-    .field-select:focus { border-bottom-color: var(--red); }
-    .field-select option { background: var(--paper); }
-
-    .field-error {
-      font-family: var(--mono);
-      font-size: 10px;
-      color: var(--red);
-      margin-top: 5px;
-      display: none;
-      letter-spacing: 0.04em;
-    }
-
-    /* Submit */
-    .btn-submit {
-      display: block;
-      width: 100%;
-      background: var(--ink);
-      color: var(--paper);
-      border: none;
-      padding: 16px 24px;
-      font-size: 13px;
-      font-family: var(--mono);
+    .ann-num {
+      font-size: 9px;
       font-weight: 500;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      cursor: pointer;
-      margin-top: 8px;
-      border-radius: 0;
-      transition: background 0.15s;
+      letter-spacing: 0.06em;
+      opacity: 0.7;
+      margin-bottom: 5px;
     }
 
-    .btn-submit:hover { background: var(--red); }
-    .btn-submit:active { opacity: 0.85; }
-    .btn-submit:disabled { opacity: 0.4; cursor: not-allowed; }
-
-    .form-note {
-      font-family: var(--mono);
-      font-size: 10px;
-      color: var(--rule-lt);
-      text-align: center;
-      margin-top: 14px;
-      letter-spacing: 0.04em;
-    }
-
-    /* ─── SUCCESS ─── */
-    #success-view {
-      display: none;
-      flex-direction: column;
-      padding: 28px 32px;
-      flex: 1;
-    }
-
-    .success-stamp {
-      width: 64px; height: 64px;
-      border: 3px solid var(--ink);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: var(--mono);
+    .ann-body strong {
+      display: block;
       font-size: 11px;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      text-align: center;
-      line-height: 1.3;
-      color: var(--red);
-      border-color: var(--red);
-      margin-bottom: 28px;
       font-weight: 500;
+      margin-bottom: 4px;
+      letter-spacing: 0.02em;
     }
 
-    .success-headline {
-      font-family: var(--serif);
-      font-weight: 700;
-      font-size: 28px;
-      line-height: 1.15;
-      margin-bottom: 14px;
+    .ann-body { color: inherit; }
+
+    .ann-1 { background: var(--a1-bg); border-color: var(--a1-acc); color: #92400E; }
+    .ann-1 .ann-num { color: var(--a1-acc); }
+
+    .ann-2 { background: var(--a2-bg); border-color: var(--a2-acc); color: #1E40AF; }
+    .ann-2 .ann-num { color: var(--a2-acc); }
+
+    .ann-3 { background: var(--a3-bg); border-color: var(--a3-acc); color: #166534; }
+    .ann-3 .ann-num { color: var(--a3-acc); }
+
+    .ann-4 { background: var(--a4-bg); border-color: var(--a4-acc); color: #9F1239; }
+    .ann-4 .ann-num { color: var(--a4-acc); }
+
+    /* ── STICKY NOTE: the form ── */
+    .sticky {
+      background: var(--sticky-bg);
+      border-top: 4px solid var(--sticky-brdr);
+      padding: 18px 18px 16px;
+      box-shadow: 2px 3px 14px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.08);
+      transform: rotate(-0.6deg);
+      margin: 6px 0;
+      position: relative;
     }
 
-    .success-body {
-      font-size: 14px;
-      color: var(--muted);
-      line-height: 1.7;
-      font-family: Georgia, serif;
-      margin-bottom: 28px;
+    .sticky::before {
+      content: '';
+      position: absolute;
+      top: -4px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 32px;
+      height: 4px;
+      background: rgba(234,179,8,0.5);
     }
 
-    .success-receipt {
-      border-top: 1px solid var(--rule-lt);
-      border-bottom: 1px solid var(--rule-lt);
-      padding: 16px 0;
-    }
-
-    .receipt-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 6px 0;
-    }
-
-    .receipt-key {
+    .sticky-tag {
       font-family: var(--mono);
-      font-size: 10px;
+      font-size: 9px;
+      letter-spacing: 0.16em;
       text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--muted);
+      color: #A16207;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
 
-    .receipt-val {
+    .sticky-tag::after {
+      content: '';
+      display: block;
+      flex: 1;
+      height: 1px;
+      background: rgba(161,98,7,0.2);
+      margin-left: 10px;
+    }
+
+    .sticky-title {
+      font-family: var(--serif);
+      font-size: 18px;
+      font-weight: 600;
+      line-height: 1.2;
+      color: var(--ink);
+      margin-bottom: 16px;
+    }
+
+    /* Sticky form fields */
+    .sf-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .sf-field {
+      margin-bottom: 11px;
+    }
+
+    .sf-field label {
+      display: block;
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #A16207;
+      margin-bottom: 4px;
+    }
+
+    .sf-field input,
+    .sf-field select {
+      display: block;
+      width: 100%;
+      background: rgba(255,255,255,0.7);
+      border: none;
+      border-bottom: 1px solid #D6CF9C;
+      padding: 6px 4px 7px;
       font-family: var(--mono);
       font-size: 12px;
       color: var(--ink);
-      font-weight: 500;
+      outline: none;
+      border-radius: 0;
+      -webkit-appearance: none;
+      transition: border-color 0.15s, background 0.15s;
     }
 
-    .receipt-val.red { color: var(--red); }
+    .sf-field input:focus,
+    .sf-field select:focus {
+      border-bottom-color: var(--sticky-brdr);
+      background: rgba(255,255,255,0.95);
+    }
 
-    /* ─── FOOTER ─── */
-    footer {
+    .sf-field input::placeholder { color: #C5BD9A; }
+    .sf-field select option { background: #FFF; }
+
+    .sf-error {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: #DC2626;
+      margin-top: 3px;
+      display: none;
+    }
+
+    .sf-submit {
+      display: block;
+      width: 100%;
+      background: var(--ink);
+      color: var(--page);
+      border: none;
+      padding: 11px 16px;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      border-radius: 0;
+      margin-top: 4px;
+      transition: background 0.15s;
+    }
+
+    .sf-submit:hover { background: #2D1B00; }
+    .sf-submit:active { opacity: 0.85; }
+    .sf-submit:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .sf-note {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: #A16207;
+      text-align: center;
+      margin-top: 8px;
+      opacity: 0.8;
+    }
+
+    /* ── SUCCESS inside sticky ── */
+    #sticky-success {
+      display: none;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .suc-stamp {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      color: var(--a3-acc);
+      border: 1.5px solid var(--a3-acc);
+      padding: 4px 10px;
+      display: inline-block;
+      margin-bottom: 14px;
+      transform: rotate(-2deg);
+    }
+
+    .suc-title {
+      font-family: var(--serif);
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--ink);
+      line-height: 1.3;
+      margin-bottom: 10px;
+    }
+
+    .suc-body {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: #A16207;
+      line-height: 1.7;
+    }
+
+    .suc-pos {
+      margin-top: 12px;
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--ink);
+      border-top: 1px dashed #D6CF9C;
+      padding-top: 10px;
+      width: 100%;
+    }
+
+    .suc-pos span { color: var(--a3-acc); }
+
+    /* ── BOOK FOOTER ── */
+    .bk-footer {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 14px 32px;
-      border-top: 1px solid var(--rule-lt);
-      flex-wrap: wrap;
-      gap: 8px;
+      padding: 12px 32px 12px 60px;
+      border-top: 1px solid var(--rule);
+      background: var(--page2);
     }
 
-    .footer-left {
+    .bf-l {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      color: var(--faint);
+    }
+
+    .bf-r {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--faint);
+    }
+
+    /* ── DESK LABEL ── */
+    .desk-label {
       font-family: var(--mono);
       font-size: 10px;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.1em;
+      color: rgba(255,255,255,0.18);
       text-transform: uppercase;
-      color: var(--muted);
+      margin-top: 20px;
+      text-align: center;
     }
 
-    .footer-right {
-      font-family: var(--mono);
-      font-size: 10px;
-      color: var(--rule-lt);
-    }
+    /* ── RESPONSIVE ── */
+    @media (max-width: 820px) {
+      body { padding: 0; }
 
-    /* ─── RESPONSIVE ─── */
-    @media (max-width: 860px) {
-      .page-body {
+      .book {
+        box-shadow: none;
+        max-width: 100%;
+      }
+
+      .book::after { display: none; }
+
+      .bk-body {
         grid-template-columns: 1fr;
       }
 
-      .editorial {
+      .gutter { display: none; }
+
+      .ms {
         border-right: none;
-        border-bottom: 3px solid var(--ink);
+        border-bottom: 1px solid var(--rule);
+        padding: 28px 24px 32px;
       }
 
-      .form-panel-body { padding: 24px 28px; }
-      #success-view { padding: 24px 28px; }
-
-      .feature-items {
-        grid-template-columns: 1fr;
+      .margin {
+        padding: 24px 24px 32px;
+        background: var(--page2);
       }
 
-      .feature-item:nth-child(odd) {
-        border-right: none;
-        padding-right: 0;
-      }
+      .sticky { transform: none; }
 
-      .feature-item:nth-child(even) {
-        padding-left: 0;
-      }
+      .bk-header { padding-left: 24px; }
+      .bk-footer { padding-left: 24px; }
+
+      .desk-label { display: none; }
     }
 
-    @media (max-width: 540px) {
-      .masthead-title { font-size: 32px; padding: 16px 20px 12px; }
-      .masthead-meta { padding: 10px 18px; }
-      .masthead-cta-strip { padding: 7px 20px; font-size: 10px; }
-      .editorial-hero { padding: 36px 24px 28px; }
-      .pull-quote { padding: 24px; }
-      .feature-list { padding: 24px; }
-      .form-panel-header { padding: 20px 24px 16px; }
-      .form-panel-body { padding: 20px 24px; }
-      #success-view { padding: 20px 24px; }
-      footer { padding: 14px 24px; }
-      .field-row { grid-template-columns: 1fr; gap: 0; }
+    @media (max-width: 480px) {
+      .sf-row { grid-template-columns: 1fr; gap: 0; }
+      .bk-meta { display: none; }
     }
   </style>
 </head>
 <body>
 
-  <!-- MASTHEAD -->
-  <header class="masthead">
-    <div class="masthead-top">
-      <div class="masthead-title">Précis</div>
-      <div class="masthead-meta">
-        <div class="masthead-tagline">A social network for serious readers &amp; writers</div>
-        <div class="masthead-issue">Vol. 01 &nbsp;·&nbsp; Est. 2026 &nbsp;·&nbsp; Early Access</div>
+  <!-- THE BOOK -->
+  <div class="book">
+
+    <!-- Header -->
+    <div class="bk-header">
+      <div class="bk-wordmark">Précis<sup>beta</sup></div>
+      <div class="bk-meta">
+        A reading + thinking network<br/>
+        Founding cohort · 2026
       </div>
     </div>
-    <div class="masthead-cta-strip">
-      <span>Now collecting founding members</span>
-      <span class="strip-dot"></span>
-      <span>Invitations sent in waves</span>
-      <span class="strip-dot"></span>
-      <span>Limited spots available</span>
-    </div>
-  </header>
 
-  <!-- BODY -->
-  <div class="page-body">
+    <!-- Body: 3-column -->
+    <div class="bk-body">
 
-    <!-- LEFT: Editorial content -->
-    <div class="editorial">
-      <div class="editorial-hero">
-        <div class="vol-label">Founding edition</div>
-        <h1 class="hero-headline">
-          A place for people who take<br/>
-          <em>reading seriously.</em>
-        </h1>
-        <p class="hero-body">
-          Précis is a network built around the book — not the algorithm.
-          Annotate passages, publish criticism, build a shelf worth
-          sharing, and find readers who argue about the same things you do.
-        </p>
+      <!-- Gutter -->
+      <div class="gutter" aria-hidden="true">
+        <div class="ln">01</div><div class="ln">02</div><div class="ln">03</div>
+        <div class="ln">04</div><div class="ln">05</div><div class="ln">06</div>
+        <div class="ln">07</div><div class="ln">08</div><div class="ln">09</div>
+        <div class="ln">10</div><div class="ln">11</div><div class="ln">12</div>
+        <div class="ln act">13</div><div class="ln act">14</div>
+        <div class="ln">15</div><div class="ln">16</div><div class="ln">17</div>
+        <div class="ln">18</div><div class="ln">19</div><div class="ln">20</div>
+        <div class="ln">21</div><div class="ln">22</div><div class="ln">23</div>
+        <div class="ln">24</div><div class="ln">25</div><div class="ln">26</div>
       </div>
 
-      <div class="pull-quote">
-        <blockquote>
-          "The margin note is the oldest form of social media.
-          We're bringing it online."
-        </blockquote>
+      <!-- Manuscript -->
+      <div class="ms">
+        <div class="ms-chapter">§ i — On why the margin disappeared</div>
+
+        <div class="ms-section">
+          <p class="ms-p">
+            Every book you've ever read was already<br/>
+            <span class="hl hl-amber">full of other people's thoughts.</span><br/>
+            The underlines. The question marks. The bracket<br/>
+            around a sentence that changed how someone lived.
+          </p>
+        </div>
+
+        <div class="ms-section">
+          <p class="ms-lead">We stripped those away.</p>
+          <p class="ms-p">
+            Digital reading arrived and decided that "clean"<br/>
+            meant empty — <span class="hl hl-blue">no margins, no conversation,<br/>
+            no trace that anyone had been here before.</span><sup class="fn">1</sup>
+          </p>
+          <p class="ms-aside">The margin was not wasted space. It was the conversation.</p>
+        </div>
+
+        <div class="ms-section">
+          <p class="ms-p">
+            Précis is <span class="hl hl-pink">the margin, returned.</span><sup class="fn">2</sup>&nbsp; A network<br/>
+            where the annotation is the unit of thought — not<br/>
+            the post, not the star rating, not the hot take.<br/>
+            The moment you stop and write: <em>wait. this.</em>
+          </p>
+        </div>
+
+        <div class="ms-section">
+          <p class="ms-p">
+            Bring your books. Bring your arguments.<sup class="fn">3</sup><br/>
+            Find the three readers who mark up the<br/>
+            <span class="hl hl-green">same passage as you — and disagree.</span><br/>
+            Talk it through across the margin.
+          </p>
+        </div>
+
+        <div class="ms-section">
+          <div class="ms-invite-label">founding invitation</div>
+          <p class="ms-p">
+            We're building with a small cohort first —<br/>
+            readers and writers who want a place that<br/>
+            takes the text as seriously as the conversation<br/>
+            around it.<sup class="fn">4</sup> Leave your name in the margin.
+          </p>
+        </div>
       </div>
 
-      <div class="feature-list">
-        <div class="feature-list-heading">What's inside</div>
-        <div class="feature-items">
-          <div class="feature-item">
-            <span class="feature-num">01</span>
-            <div class="feature-text">
-              <strong>Marginalia</strong>
-              <span>Annotate passages and share your notes with the community.</span>
-            </div>
+      <!-- Margin -->
+      <div class="margin">
+
+        <div class="ann ann-1">
+          <div class="ann-num">NOTE 1</div>
+          <div class="ann-body">
+            <strong>Annotations</strong>
+            Highlight passages, pin notes, see what others marked. Public, private, or shared with a circle.
           </div>
-          <div class="feature-item">
-            <span class="feature-num">02</span>
-            <div class="feature-text">
-              <strong>Reader Lenses</strong>
-              <span>Your reading archetype — analyst, empath, philosopher, and more.</span>
-            </div>
+        </div>
+
+        <div class="ann ann-2">
+          <div class="ann-num">NOTE 2</div>
+          <div class="ann-body">
+            <strong>Reader lenses</strong>
+            Six archetypes — analyst, empath, philosopher, storyteller, explorer, alchemist. Find your readers.
           </div>
-          <div class="feature-item">
-            <span class="feature-num">03</span>
-            <div class="feature-text">
-              <strong>Book Clubs</strong>
-              <span>Private groups and public challenges with chapter-by-chapter discussion.</span>
-            </div>
+        </div>
+
+        <!-- THE FORM -->
+        <div class="sticky">
+          <div class="sticky-tag">Apply for access</div>
+
+          <div id="sticky-form">
+            <p class="sticky-title">Reserve your<br/>founding spot.</p>
+            <form id="waitlist-form" novalidate>
+              <div class="sf-row">
+                <div class="sf-field">
+                  <label for="firstName">First</label>
+                  <input type="text" id="firstName" placeholder="Ada" autocomplete="given-name" />
+                  <div class="sf-error" id="err-fn">Required.</div>
+                </div>
+                <div class="sf-field">
+                  <label for="lastName">Last</label>
+                  <input type="text" id="lastName" placeholder="Lovelace" autocomplete="family-name" />
+                </div>
+              </div>
+              <div class="sf-field">
+                <label for="email">Email</label>
+                <input type="email" id="email" placeholder="you@example.com" autocomplete="email" />
+                <div class="sf-error" id="err-em">Valid email required.</div>
+              </div>
+              <div class="sf-field">
+                <label for="readerType">I am a&hellip;</label>
+                <select id="readerType">
+                  <option value="">— select —</option>
+                  <option>Avid reader</option>
+                  <option>Writer / Author</option>
+                  <option>Both</option>
+                  <option>Book club organizer</option>
+                  <option>Educator / Librarian</option>
+                </select>
+              </div>
+              <div class="sf-field">
+                <label for="discovery">Found via&hellip;</label>
+                <select id="discovery">
+                  <option value="">— select —</option>
+                  <option>Word of mouth</option>
+                  <option>Social media</option>
+                  <option>Search</option>
+                  <option>Newsletter</option>
+                  <option>Podcast</option>
+                  <option>Other</option>
+                </select>
+              </div>
+              <button type="submit" class="sf-submit" id="submit-btn">
+                Submit application →
+              </button>
+              <p class="sf-note">One email — when your invite is ready.</p>
+            </form>
           </div>
-          <div class="feature-item">
-            <span class="feature-num">04</span>
-            <div class="feature-text">
-              <strong>Original Writing</strong>
-              <span>Publish essays, reviews, and short fiction. Earn ink from readers.</span>
-            </div>
-          </div>
-          <div class="feature-item">
-            <span class="feature-num">05</span>
-            <div class="feature-text">
-              <strong>Curated Feed</strong>
-              <span>Shaped by your taste. No engagement bait.</span>
-            </div>
-          </div>
-          <div class="feature-item">
-            <span class="feature-num">06</span>
-            <div class="feature-text">
-              <strong>Reading Shelf</strong>
-              <span>Track every book. See where your friends are in the same story.</span>
+
+          <div id="sticky-success">
+            <div class="suc-stamp">CONFIRMED</div>
+            <p class="suc-title">You're in the<br/>founding queue.</p>
+            <p class="suc-body">
+              One email, when your<br/>
+              invitation is ready.<br/>
+              Keep the margin clear.
+            </p>
+            <div class="suc-pos">
+              Waitlist position: <span id="pos-num">—</span>
             </div>
           </div>
         </div>
-      </div>
-    </div>
 
-    <!-- RIGHT: Form panel -->
-    <div class="form-panel">
-      <div class="form-panel-header">
-        <div class="form-panel-label">Request access</div>
-        <div class="form-panel-title">Reserve your spot<br/>on the waitlist.</div>
-      </div>
-
-      <!-- Form -->
-      <div id="form-view" class="form-panel-body">
-        <form id="waitlist-form" novalidate>
-
-          <div class="field-row">
-            <div class="field">
-              <label class="field-label" for="firstName">First name</label>
-              <input class="field-input" type="text" id="firstName" name="firstName"
-                     placeholder="Ada" autocomplete="given-name" />
-              <div class="field-error" id="err-firstName">Required.</div>
-            </div>
-            <div class="field">
-              <label class="field-label" for="lastName">Last name</label>
-              <input class="field-input" type="text" id="lastName" name="lastName"
-                     placeholder="Lovelace" autocomplete="family-name" />
-            </div>
-          </div>
-
-          <div class="field">
-            <label class="field-label" for="email">Email address</label>
-            <input class="field-input" type="email" id="email" name="email"
-                   placeholder="you@example.com" autocomplete="email" />
-            <div class="field-error" id="err-email">Enter a valid email address.</div>
-          </div>
-
-          <div class="field">
-            <label class="field-label" for="readerType">I am primarily a&hellip;</label>
-            <div class="field-select-wrap">
-              <select class="field-select" id="readerType" name="readerType">
-                <option value="">Select</option>
-                <option value="avid-reader">Avid reader</option>
-                <option value="writer">Writer / Author</option>
-                <option value="both">Both reader &amp; writer</option>
-                <option value="book-club">Book club organizer</option>
-                <option value="educator">Educator / Librarian</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="field">
-            <label class="field-label" for="discovery">How did you find us?</label>
-            <div class="field-select-wrap">
-              <select class="field-select" id="discovery" name="discovery">
-                <option value="">Select</option>
-                <option value="friend">Word of mouth</option>
-                <option value="social">Social media</option>
-                <option value="search">Search</option>
-                <option value="newsletter">Newsletter</option>
-                <option value="podcast">Podcast</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-          </div>
-
-          <button class="btn-submit" type="submit" id="submit-btn">
-            Submit application →
-          </button>
-
-          <p class="form-note">No marketing. One email when your invite is ready.</p>
-        </form>
-      </div>
-
-      <!-- Success -->
-      <div id="success-view">
-        <div class="success-stamp">On<br/>the<br/>list</div>
-        <h2 class="success-headline">Application<br/>received.</h2>
-        <p class="success-body">
-          You'll get one email — when your invitation is ready.
-          We send access in small waves to keep quality high.
-        </p>
-        <div class="success-receipt">
-          <div class="receipt-row">
-            <span class="receipt-key">Status</span>
-            <span class="receipt-val red">Waitlisted</span>
-          </div>
-          <div class="receipt-row">
-            <span class="receipt-key">Position</span>
-            <span class="receipt-val" id="position-number">—</span>
-          </div>
-          <div class="receipt-row">
-            <span class="receipt-key">Cohort</span>
-            <span class="receipt-val">Founding</span>
+        <div class="ann ann-3">
+          <div class="ann-num">NOTE 3</div>
+          <div class="ann-body">
+            <strong>Clubs &amp; challenges</strong>
+            Read together. Chapter discussions, shared shelves, group annotations across a single text.
           </div>
         </div>
+
+        <div class="ann ann-4">
+          <div class="ann-num">NOTE 4</div>
+          <div class="ann-body">
+            <strong>Original writing</strong>
+            Publish essays, criticism, short fiction. Earn ink from the community.
+          </div>
+        </div>
+
       </div>
     </div>
+
+    <!-- Footer -->
+    <div class="bk-footer">
+      <span class="bf-l">Précis · Vol. 01 · Founding Edition · 2026</span>
+      <span class="bf-r">p. 1</span>
+    </div>
+
   </div>
 
-  <!-- FOOTER -->
-  <footer>
-    <span class="footer-left">Précis &nbsp;·&nbsp; Vol. 01 &nbsp;·&nbsp; 2026</span>
-    <span class="footer-right">Early access · All rights reserved</span>
-  </footer>
+  <div class="desk-label">Reading room · Early access</div>
 
   <script>
     (function () {
       'use strict';
 
-      var form        = document.getElementById('waitlist-form');
-      var formView    = document.getElementById('form-view');
-      var successView = document.getElementById('success-view');
-      var submitBtn   = document.getElementById('submit-btn');
-      var posEl       = document.getElementById('position-number');
+      var form       = document.getElementById('waitlist-form');
+      var formView   = document.getElementById('sticky-form');
+      var successView = document.getElementById('sticky-success');
+      var submitBtn  = document.getElementById('submit-btn');
+      var posEl      = document.getElementById('pos-num');
 
+      // Restore from localStorage
       var saved = localStorage.getItem('precis_waitlist');
       if (saved) {
         try { showSuccess(JSON.parse(saved)); } catch (e) {}
@@ -746,7 +788,7 @@
         if (!validate()) return;
 
         submitBtn.disabled = true;
-        submitBtn.textContent = 'Processing…';
+        submitBtn.textContent = 'Recording…';
 
         setTimeout(function () {
           var entry = {
@@ -760,21 +802,22 @@
           };
           localStorage.setItem('precis_waitlist', JSON.stringify(entry));
           showSuccess(entry);
-        }, 700);
+        }, 650);
       });
 
       function validate() {
         var ok = true;
-        var fn = document.getElementById('firstName').value.trim();
-        var ef = document.getElementById('err-firstName');
-        ef.style.display = fn ? 'none' : 'block';
+
+        var fn  = document.getElementById('firstName').value.trim();
+        var eFn = document.getElementById('err-fn');
+        eFn.style.display = fn ? 'none' : 'block';
         if (!fn) ok = false;
 
-        var em = document.getElementById('email').value.trim();
-        var ee = document.getElementById('err-email');
-        var valid = em && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em);
-        ee.style.display = valid ? 'none' : 'block';
-        if (!valid) ok = false;
+        var em  = document.getElementById('email').value.trim();
+        var eEm = document.getElementById('err-em');
+        var emOk = em && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em);
+        eEm.style.display = emOk ? 'none' : 'block';
+        if (!emOk) ok = false;
 
         return ok;
       }
